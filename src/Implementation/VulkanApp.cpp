@@ -1,6 +1,7 @@
 #include "VulkanApp.h"
 #include <iostream>
 #include "AppBuffer.h"
+#include "Sphere.h"
 
 namespace app {
 
@@ -164,6 +165,11 @@ namespace app {
 		floor.transform.scale = { 3.f, 1.f, 3.f };
 		gameObjects.emplace(floor.getId(), std::move(floor));
 
+		auto sphere = Sphere::createSphere(engineDevice, 1.0f);
+		gameObjects.emplace(sphere.getId(), std::move(sphere));
+
+		//Sphere sphere1 = Sphere::createSphere(2.0f, glm::vec3(1.0f, 0.0f, 0.0f)); // Red sphere with radius 2
+		//gameObjects.emplace(sphere1.getId(), std::move(sphere1));
 
 		std::vector<glm::vec3> lightColors{
 		  {1.f, .1f, .1f},

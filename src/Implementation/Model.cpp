@@ -12,6 +12,10 @@
 #define ENGINE_DIR "../"
 #endif
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace std {
     template <>
     struct hash<app::Model::Vertex> {
@@ -39,6 +43,88 @@ std::unique_ptr<app::Model> app::Model::createModelFromFile(EngineDevice& device
     builder.loadModel(ENGINE_DIR + filePath);
     std::cout << "Vertex count: " << builder.vertices.size() << "\n";
     return std::make_unique<Model>(device, builder);
+}
+
+void app::Model::ModelBuilder::createSphere(float radius, uint32_t sectorCount, uint32_t stackCount)
+{
+    vertices.clear();
+    indices.clear();
+
+    float x, y, z, xy;                              // vertex position
+    float nx, ny, nz, lengthInv = 1.0f / radius;    // vertex normal
+    float s, t;                                     // vertex texCoord
+
+    float sectorStep = 2 * M_PI / sectorCount;
+    float stackStep = M_PI / stackCount;
+    float sectorAngle, stackAngle;
+
+    // Generate vertices
+    for (uint32_t i = 0; i <= stackCount; ++i)
+    {
+        stackAngle = M_PI / 2 - i * stackStep;        // starting from pi/2 to -pi/2
+        xy = radius * cosf(stackAngle);             // r * cos(u)
+        z = radius * sinf(stackAngle);              // r * sin(u)
+
+        // add (sectorCount+1) vertices per stack
+        // the first and last vertices have same position and normal, but different tex coords
+        for (uint32_t j = 0; j <= sectorCount; ++j)
+        {
+            sectorAngle = j * sectorStep;           // starting from 0 to 2pi
+
+            // vertex position
+            x = xy * cosf(sectorAngle);             // r * cos(u) * cos(v)
+            y = xy * sinf(sectorAngle);             // r * cos(u) * sin(v)
+
+            // normalized vertex normal
+            nx = x * lengthInv;
+            ny = y * lengthInv;
+            nz = z * lengthInv;
+
+            // vertex tex coord between [0, 1]
+            s = (float)j / sectorCount;
+            t = (float)i / stackCount;
+
+            Vertex vertex{};
+            vertex.position = { x, y, z };
+            vertex.normal = { nx, ny, nz };
+            vertex.color = { 1.0f, 1.0f, 1.0f }; // White color by default
+            vertex.uv = { s, t };
+
+            vertices.push_back(vertex);
+        }
+    }
+
+    // Generate indices
+    //  k1--k1+1
+    //  |  / |
+    //  | /  |
+    //  k2--k2+1
+    uint32_t k1, k2;
+    for (uint32_t i = 0; i < stackCount; ++i)
+    {
+        k1 = i * (sectorCount + 1);     // beginning of current stack
+        k2 = k1 + sectorCount + 1;      // beginning of next stack
+
+        for (uint32_t j = 0; j < sectorCount; ++j, ++k1, ++k2)
+        {
+            // 2 triangles per sector excluding first and last stacks
+            // k1 => k2 => k1+1
+            if (i != 0)
+            {
+                indices.push_back(k1);
+                indices.push_back(k2);
+                indices.push_back(k1 + 1);
+            }
+
+            // k1+1 => k2 => k2+1
+            if (i != (stackCount - 1))
+            {
+                indices.push_back(k1 + 1);
+                indices.push_back(k2);
+                indices.push_back(k2 + 1);
+            }
+        }
+    }
 }
 
 void app::Model::bind(VkCommandBuffer commandBuffer)
@@ -144,6 +230,17 @@ std::vector<VkVertexInputAttributeDescription> app::Model::Vertex::getAttributeD
     attributeDescriptions.push_back({ 3,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex, uv) });
 
     return attributeDescriptions;
+}
+
+std::unique_ptr<app::Model> app::Model::createSphereModel(
+    EngineDevice& device,
+    float radius,
+    uint32_t sectorCount,
+    uint32_t stackCount)
+{
+    ModelBuilder builder{};
+    builder.createSphere(radius, sectorCount, stackCount);
+    return std::make_unique<Model>(device, builder);
 }
 
 void app::Model::ModelBuilder::loadModel(const std::string& filepath)

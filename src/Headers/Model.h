@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <cstdint>    // for uint32_t
+#include <cmath>
 #include "EngineDevice.h"
 #include "AppBuffer.h"
 
@@ -30,6 +32,7 @@ namespace app {
 			std::vector<Model::Vertex> vertices{};
 			std::vector<uint32_t> indices{};
 			void loadModel(const std::string& filepath);
+			void createSphere(float radius, uint32_t sectorCount = 36, uint32_t stackCount = 18);
 		};
 
 		Model(EngineDevice& device, const ModelBuilder& builder);
@@ -40,6 +43,12 @@ namespace app {
 
 
 		static std::unique_ptr<Model> createModelFromFile(EngineDevice& device, const std::string& filePath);
+		static std::unique_ptr<Model> createSphereModel(
+			EngineDevice& device,
+			float radius,
+			uint32_t sectorCount = 36,
+			uint32_t stackCount = 18);
+
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
 

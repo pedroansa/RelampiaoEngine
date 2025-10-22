@@ -54,9 +54,9 @@ namespace app {
         std::shared_ptr<Model> model{};
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
 
-    private:
+        
+    protected:
         GameObject(id_t objId) : id{ objId } {}
-
         id_t id;
     };
 }  // namespace lve
