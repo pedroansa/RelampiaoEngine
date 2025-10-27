@@ -10,6 +10,7 @@ namespace app{
 	struct PointLight {
 		glm::vec4 position{};
 		glm::vec4 color{};
+		//float radius = 1.f;
 	};
 
 	struct GlobalUbo {

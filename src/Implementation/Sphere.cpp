@@ -6,12 +6,13 @@ namespace app {
     Sphere Sphere::createSphere(
         EngineDevice& device,
         float radius,
+        bool hasLight,
         uint32_t sectorCount,
         uint32_t stackCount,
         glm::vec3 position,
-        glm::vec3 color) {
+        glm::vec3 color){
 
-        auto sphereModelUnique = Model::createSphereModel(device, 1.0f, sectorCount, stackCount);
+        auto sphereModelUnique = Model::createSphereModel(device, radius, sectorCount, stackCount);
         std::shared_ptr<Model> sphereModel = std::move(sphereModelUnique);
 
         // Create the sphere game object
@@ -24,6 +25,12 @@ namespace app {
         sphere.radius = radius;
         sphere.transform.translation = position;
         sphere.transform.scale = glm::vec3(radius);
+
+        if (hasLight) {
+            sphere.pointLight = std::make_unique<PointLightComponent>();
+            sphere.pointLight->lightIntensity = 1.f;
+            //sphere.pointLight->radius = sphere.radius;
+        }
 
         return sphere;
     }

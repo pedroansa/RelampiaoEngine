@@ -7,6 +7,7 @@ layout(location = 2) in vec3 fragNormalWorld;
 struct PointLight{
 	vec4 position;
 	vec4 color;
+	//float radius;
 };
 
 layout(set = 0, binding = 0) uniform GlobalUbo {

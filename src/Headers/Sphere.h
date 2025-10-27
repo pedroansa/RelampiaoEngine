@@ -10,6 +10,7 @@ namespace app {
         static Sphere createSphere(
             EngineDevice& device,
             float radius = 1.0f,
+            bool hasLight = false,
             uint32_t sectorCount = 36,
             uint32_t stackCount = 18,
             glm::vec3 position = { 0.0f, 0.0f, 0.0f },
