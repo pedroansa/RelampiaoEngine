@@ -4,55 +4,45 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragPosWorld;
 layout(location = 2) in vec3 fragNormalWorld;
 
-struct PointLight{
-	vec4 position;
-	vec4 color;
-	//float radius;
-};
-
-layout(set = 0, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  mat4 invView;
-  vec4 ambientLightColor; // w is intensity
-  PointLight pointLights[10];
-  int numLights;
-} ubo;
-
-layout(push_constant) uniform Push{
-	mat4 modelMatrix; 
-	mat4 normalMatrix;
-} push;
-
 layout(location = 0) out vec4 outColor;
 
-void main(){
-	vec3 diffuse = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w;
-	vec3 specularLight = vec3(0.0);
-	vec3 surfaceNormal = normalize(fragNormalWorld);
+struct PointLight {
+    vec4 position;
+    vec4 color;
+    vec4 data;
+};
 
-	vec3 cameraPosWorld = ubo.invView[3].xyz;
-	vec3 viewDirection = normalize(cameraPosWorld - fragPosWorld);
+layout(std140, set = 0, binding = 0) uniform GlobalUbo {
+    mat4 projection;
+    mat4 view;
+    mat4 inverseView;
+    vec4 ambientLightColor;
+    vec4 numLightsAndPad;
+    PointLight pointLights[10];
+} ubo;
 
-	for (int i = 0; i < ubo.numLights; i++) {
-		PointLight light = ubo.pointLights[i];
-		vec3 directionToLight = light.position.xyz - fragPosWorld;
-		float attenuation = 1.0 / dot(directionToLight, directionToLight);
+layout(push_constant) uniform Push {
+    mat4 modelMatrix;
+    mat4 normalMatrix;
+} push;
 
-		directionToLight = normalize(directionToLight);
-		
-		float cosAngIncidence = max(dot(surfaceNormal, directionToLight), 0);
-		vec3 intensity = light.color.xyz * light.color.w * attenuation;
-		diffuse += intensity * cosAngIncidence;
+void main() {
+    vec3 ambient = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w;
+    vec3 diffuse = vec3(0.0);
 
-		// specular lighting
-		vec3 halfAngle = normalize(directionToLight + viewDirection);
-		float blinnTerm = dot(surfaceNormal, halfAngle);
-		blinnTerm = clamp(blinnTerm, 0, 1);
-		blinnTerm = pow(blinnTerm, 512.0); 
-		specularLight += intensity * blinnTerm;
+    int numLights = clamp(int(ubo.numLightsAndPad.x), 0, 10);
 
-	}
-	
-	outColor = vec4(diffuse * fragColor + specularLight * fragColor, 1.0);
+    for (int i = 0; i < numLights; i++) {
+        vec3 toLight = ubo.pointLights[i].position.xyz - fragPosWorld;
+        float dist = length(toLight);
+        vec3 L = normalize(toLight);
+
+        float radius = max(ubo.pointLights[i].data.x, 0.001);
+        float attenuation = 1.0 / (1.0 + (dist * dist) / (radius * radius));
+
+        float NdotL = max(dot(normalize(fragNormalWorld), L), 0.0);
+        diffuse += ubo.pointLights[i].color.xyz * ubo.pointLights[i].color.w * NdotL * attenuation;
+    }
+
+    outColor = vec4((ambient + diffuse) * fragColor, 1.0);
 }

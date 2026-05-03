@@ -12,23 +12,25 @@ const vec2 OFFSETS[6] = vec2[](
 struct PointLight {
   vec4 position; // ignore w
   vec4 color; // w is intensity
+  vec4 data; // x is radius, yzw are padding
 };
 
 layout (location = 0) out vec2 fragOffset;
 
-layout(set = 0, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  mat4 invView;
-  vec4 ambientLightColor; // w is intensity
-  PointLight pointLight[10];
-  int numLights;
+layout(std140, set = 0, binding = 0) uniform GlobalUbo {
+    mat4 projection;        // offset 0
+    mat4 view;              // offset 64
+    mat4 inverseView;       // offset 128
+    vec4 ambientLightColor;
+    vec4 numLightsAndPad;
+    PointLight pointLights[10];          // offset 692
 } ubo;
 
 layout(push_constant) uniform Push {
   vec4 position;
   vec4 color;
   float radius;
+  float padding[3];
 } push;
 
 const float LIGHT_RADIUS = 0.05;

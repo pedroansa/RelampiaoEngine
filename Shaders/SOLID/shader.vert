@@ -10,17 +10,18 @@ layout(location = 1) out vec3 fragPosWorld;
 layout(location = 2) out vec3 fragNormalWorld;
 
 struct PointLight {
-  vec4 position; // ignore w
-  vec4 color; // w is intensity
+    vec4 position;  // offset 0
+    vec4 color;     // offset 16
+    vec4 data;      // offset 32, x is radius, yzw are padding
 };
 
-layout(set = 0, binding = 0) uniform GlobalUbo {
-  mat4 projection;
-  mat4 view;
-  mat4 invView;
-  vec4 ambientLightColor; // w is intensity
-  PointLight pointLights[10];
-  int numLights;
+layout(std140, set = 0, binding = 0) uniform GlobalUbo {
+    mat4 projection;        // offset 0
+    mat4 view;              // offset 64
+    mat4 inverseView;       // offset 128
+    vec4 ambientLightColor; // offset 192
+    vec4 numLightsAndPad;
+    PointLight pointLights[10];
 } ubo;
 
 layout(push_constant) uniform Push{
