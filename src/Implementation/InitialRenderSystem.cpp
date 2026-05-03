@@ -40,7 +40,7 @@ namespace app {
 	{
 		assert(pipelineLayout != nullptr && "Cannot create pipeline before layour");
 
-		// Para pipeline sólido (original)
+		// Para pipeline sï¿½lido (original)
 		PipelineConfigInfo solidConfig{};
 		PipelineConfigInfo wireframeConfig{};
 		PipelineConfigInfo pointConfig{};

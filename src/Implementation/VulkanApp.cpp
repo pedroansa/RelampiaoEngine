@@ -7,6 +7,11 @@ namespace app {
 
 	VulkanApp::VulkanApp()
 	{
+		std::cout << "=== UBO Structure Debug ===" << std::endl;
+		std::cout << "sizeof(GlobalUbo): " << sizeof(GlobalUbo) << std::endl;
+		std::cout << "sizeof(PointLight): " << sizeof(PointLight) << std::endl;
+		//std::cout << "offsetof(GlobalUbo, pointLights): " << offsetof(GlobalUbo, pointLights) << std::endl;
+
 		globalPool = 
 			AppDescriptorPool::Builder(engineDevice)
 			.setMaxSets(EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
@@ -54,7 +59,7 @@ namespace app {
 
 		InitialRenderSystem initialRenderSystem{ engineDevice, appRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
 		PointLightSystem pointLightSystem{ engineDevice, appRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout() };
-		KeyboardController controler{ initialRenderSystem };
+		KeyboardController controler{ };
 
 		while (!appWindow.shouldClose()) {
 			glfwPollEvents();
@@ -65,7 +70,8 @@ namespace app {
 			currentTime = newTime;
 
 			controler.moveInPlaneXZ(appWindow.getGLFWwindow(), frameTime, viewerObject);
-			controler.handleInput(appWindow.getGLFWwindow());
+			controler.handleInput(appWindow.getGLFWwindow(), initialRenderSystem);
+			controler.handleInput(appWindow.getGLFWwindow(), initialRenderSystem);
 			camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
 			float aspect = appRenderer.getAspectRatio();
@@ -88,7 +94,7 @@ namespace app {
 				// Render
 				appRenderer.beginSwapChainRenderPass(commandBuffer);
 				initialRenderSystem.renderGameObjects(frameInfo);
-				//pointLightSystem.render(frameInfo);
+				pointLightSystem.render(frameInfo);
 				appRenderer.endSwapChainRenderPass(commandBuffer);
 				appRenderer.endFrame();
 
@@ -165,33 +171,33 @@ namespace app {
 		floor.transform.scale = { 3.f, 1.f, 3.f };
 		gameObjects.emplace(floor.getId(), std::move(floor));
 
-		auto sphere = Sphere::createSphere(engineDevice, 1.0f, true);
-		gameObjects.emplace(sphere.getId(), std::move(sphere));
+		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
+		//gameObjects.emplace(sphere.getId(), std::move(sphere));
 
 		//Sphere sphere1 = Sphere::createSphere(2.0f, glm::vec3(1.0f, 0.0f, 0.0f)); // Red sphere with radius 2
 		//gameObjects.emplace(sphere1.getId(), std::move(sphere1));
 
-		//std::vector<glm::vec3> lightColors{
-		//  {1.f, .1f, .1f},
-		//  {.1f, .1f, 1.f},
-		//  {.1f, 1.f, .1f},
-		//  {1.f, 1.f, .1f},
-		//  {.1f, 1.f, 1.f},
-		//  {1.f, 1.f, 1.f}  //
-		//};
+		std::vector<glm::vec3> lightColors{
+		  {1.f, .1f, .1f},
+		  {.1f, .1f, 1.f},
+		  {.1f, 1.f, .1f},
+		  {1.f, 1.f, .1f},
+		  {.1f, 1.f, 1.f},
+		  {1.f, 1.f, 1.f}  //
+		};
 
-		//for (int i = 0; i < lightColors.size(); i++) {
-		//	auto pointLight = GameObject::makePointLight(0.5f);
-		//	pointLight.color = lightColors[i];
+		for (int i = 0; i < lightColors.size(); i++) {
+			auto pointLight = GameObject::makePointLight(100.0f);
+			pointLight.color = lightColors[i];
 
-		//	auto rotateLight = glm::rotate(
-		//		glm::mat4(1.f),
-		//		(i * glm::two_pi<float>()) / lightColors.size(),
-		//		{ 0.f, -1.f, 0.f });
+			auto rotateLight = glm::rotate(
+				glm::mat4(1.f),
+				(i * glm::two_pi<float>()) / lightColors.size(),
+				{ 0.f, -1.f, 0.f });
 
-		//	pointLight.transform.translation = glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f));
-		//	gameObjects.emplace(pointLight.getId(), std::move(pointLight));
-		//}
+			pointLight.transform.translation = glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f));
+			gameObjects.emplace(pointLight.getId(), std::move(pointLight));
+		}
 	}
 
 }

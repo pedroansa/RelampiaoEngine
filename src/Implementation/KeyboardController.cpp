@@ -35,7 +35,7 @@ namespace app {
             gameObject.transform.translation += moveSpeed * dt * glm::normalize(moveDir);
         }
     }
-    void KeyboardController::handleInput(GLFWwindow* window)
+    void KeyboardController::handleInput(GLFWwindow* window, InitialRenderSystem& renderSystem)
     {
        
         if (!(renderSystem.getMode() == PipelineMode::SOLID) && glfwGetKey(window, keys.solidShader) == GLFW_PRESS) {

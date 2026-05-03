@@ -27,16 +27,14 @@ namespace app {
             int pointShader = GLFW_KEY_3;
         };
 
-        KeyboardController(InitialRenderSystem& renderSystem) : renderSystem(renderSystem) {}
+        KeyboardController() {}
 
         void moveInPlaneXZ(GLFWwindow* window, float dt, GameObject& gameObject);
-        void handleInput(GLFWwindow* window);
+        void handleInput(GLFWwindow* window, InitialRenderSystem& renderSystem);
 
         KeyMappings keys{};
         float moveSpeed{ 1.f };
         float lookSpeed{ 1.5f };
-
-        InitialRenderSystem& renderSystem;
     };
 }
 
