@@ -35,7 +35,9 @@ namespace app {
             gameObject.transform.translation += moveSpeed * dt * glm::normalize(moveDir);
         }
     }
-    void KeyboardController::handleInput(GLFWwindow* window, InitialRenderSystem& renderSystem)
+    void KeyboardController::handleInput(GLFWwindow* window, InitialRenderSystem& renderSystem,
+        CpuRaytracer& raytracer, const GameObject::Map& gameObjects,
+        const GlobalUbo& ubo, const Camera& camera, float fovY, float aspect)
     {
        
         if (!(renderSystem.getMode() == PipelineMode::SOLID) && glfwGetKey(window, keys.solidShader) == GLFW_PRESS) {
@@ -49,6 +51,15 @@ namespace app {
         if (!(renderSystem.getMode() == PipelineMode::POINTS) && glfwGetKey(window, keys.pointShader) == GLFW_PRESS) {
             std::cout << "Switched to POINTS mode\n";
             renderSystem.changeMode(PipelineMode::POINTS);
+        }
+
+        if (glfwGetKey(window, keys.raytraceCapture) == GLFW_PRESS && !mWasPressed) {
+            mWasPressed = true;
+            raytracer.loadScene(gameObjects, ubo);
+            raytracer.render(camera, fovY, aspect, "raytrace.png");
+        }
+        if (glfwGetKey(window, keys.raytraceCapture) == GLFW_RELEASE) {
+            mWasPressed = false;
         }
      
     }

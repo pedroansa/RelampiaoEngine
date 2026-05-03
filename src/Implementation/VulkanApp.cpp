@@ -2,6 +2,7 @@
 #include <iostream>
 #include "AppBuffer.h"
 #include "Sphere.h"
+#include "CpuRaytracer.h"
 
 namespace app {
 
@@ -61,6 +62,10 @@ namespace app {
 		PointLightSystem pointLightSystem{ engineDevice, appRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout() };
 		KeyboardController controler{ };
 
+		CpuRaytracer raytracer{ WIDTH, HEIGHT, 3 };
+		float aspect = appRenderer.getAspectRatio(); 
+		GlobalUbo ubo{};                              
+
 		while (!appWindow.shouldClose()) {
 			glfwPollEvents();
 
@@ -70,8 +75,6 @@ namespace app {
 			currentTime = newTime;
 
 			controler.moveInPlaneXZ(appWindow.getGLFWwindow(), frameTime, viewerObject);
-			controler.handleInput(appWindow.getGLFWwindow(), initialRenderSystem);
-			controler.handleInput(appWindow.getGLFWwindow(), initialRenderSystem);
 			camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
 			float aspect = appRenderer.getAspectRatio();
@@ -90,6 +93,9 @@ namespace app {
 				pointLightSystem.update(frameInfo, ubo);
 				uboBuffers[frameIndex]->writeToBuffer(&ubo);
 				uboBuffers[frameIndex]->flush();
+
+				controler.handleInput(appWindow.getGLFWwindow(), initialRenderSystem,
+					raytracer, gameObjects, ubo, camera, glm::radians(50.f), aspect);
 
 				// Render
 				appRenderer.beginSwapChainRenderPass(commandBuffer);

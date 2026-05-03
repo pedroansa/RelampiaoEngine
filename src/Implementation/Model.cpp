@@ -29,6 +29,8 @@ namespace std {
 
 app::Model::Model(EngineDevice& device, const ModelBuilder& builder) : appDevice{device}
 {
+    vertices = builder.vertices;
+    indices = builder.indices;
 	createVertexBuffers(builder.vertices);
     createIndexBuffers(builder.indices);
 }

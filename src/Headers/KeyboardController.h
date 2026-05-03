@@ -2,6 +2,8 @@
 #include "AppWindow.h"
 #include "InitialRenderSystem.h"
 #include "GameObject.h"
+#include "CpuRaytracer.h"
+
 
 #include <iostream>
 
@@ -25,16 +27,22 @@ namespace app {
             int solidShader = GLFW_KEY_1;
             int wireframeShader = GLFW_KEY_2;
             int pointShader = GLFW_KEY_3;
+
+            int raytraceCapture = GLFW_KEY_M;
         };
 
         KeyboardController() {}
 
         void moveInPlaneXZ(GLFWwindow* window, float dt, GameObject& gameObject);
-        void handleInput(GLFWwindow* window, InitialRenderSystem& renderSystem);
+        void handleInput(GLFWwindow* window, InitialRenderSystem& renderSystem,
+        CpuRaytracer& raytracer, const GameObject::Map& gameObjects,
+        const GlobalUbo& ubo, const Camera& camera, float fovY, float aspect);
 
         KeyMappings keys{};
         float moveSpeed{ 1.f };
         float lookSpeed{ 1.5f };
+    private:
+        bool mWasPressed = false;
     };
 }
 

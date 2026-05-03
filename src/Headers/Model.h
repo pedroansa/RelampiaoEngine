@@ -51,6 +51,8 @@ namespace app {
 
 		void bind(VkCommandBuffer commandBuffer);
 		void draw(VkCommandBuffer commandBuffer);
+		std::vector<Vertex> vertices{};
+		std::vector<uint32_t> indices{};
 
 	private:
 		void createVertexBuffers(const std::vector<Vertex>& vertices);
