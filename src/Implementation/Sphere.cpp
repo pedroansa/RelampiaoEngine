@@ -29,7 +29,7 @@ namespace app {
         if (hasLight) {
             sphere.pointLight = std::make_unique<PointLightComponent>();
             sphere.pointLight->lightIntensity = 1.f;
-            //sphere.pointLight->radius = sphere.radius;
+            sphere.pointLight->radius = sphere.radius;
         }
 
         return sphere;

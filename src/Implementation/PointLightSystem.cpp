@@ -8,6 +8,7 @@ namespace app {
 		glm::vec4 position{};
 		glm::vec4 color{};
 		float radius;
+		float padding[3]{};
 	};
 
 	PointLightSystem::PointLightSystem(EngineDevice& device, VkRenderPass renderPass, VkDescriptorSetLayout globalSetLayout) : engineDevice{ device }
@@ -46,7 +47,7 @@ namespace app {
 	{
 		assert(pipelineLayout != nullptr && "Cannot create pipeline before layour");
 
-		// Para pipeline sólido (original)
+		// Para pipeline sï¿½lido (original)
 		PipelineConfigInfo solidConfig{};
 		PipelineConfigInfo wireframeConfig{};
 		PipelineConfigInfo pointConfig{};
@@ -134,11 +135,17 @@ namespace app {
 
 			ubo.pointLights[lightIndex].position = glm::vec4(obj.transform.translation, 1.f);
 			ubo.pointLights[lightIndex].color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
-			//ubo.pointLights[lightIndex].radius = obj.pointLight->radius;
+			ubo.pointLights[lightIndex].data.x = obj.pointLight->radius;
+
+			// DEBUG: Print light info
+			/*std::cout << "Light " << lightIndex << ": pos=(" << obj.transform.translation.x << ", "
+				<< obj.transform.translation.y << ", " << obj.transform.translation.z
+				<< "), color=(" << obj.color.r << ", " << obj.color.g << ", " << obj.color.b
+				<< "), intensity=" << obj.pointLight->lightIntensity << std::endl;*/
 
 			lightIndex += 1;
 		}
-		ubo.numLights = lightIndex;
+		ubo.numLightsAndPad.x = static_cast<float>(lightIndex);
 	}
 
 }

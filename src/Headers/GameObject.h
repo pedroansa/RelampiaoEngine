@@ -24,9 +24,8 @@ namespace app {
     };
 
     struct PointLightComponent {
-        glm::vec3 position;
         float lightIntensity = 1.0f;
-        float radius;
+        float radius = 1.f;
     };
 
     class GameObject {

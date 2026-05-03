@@ -65,9 +65,10 @@ namespace app {
     {
         GameObject gameObj = GameObject::createGameObject();
         gameObj.color = color;
-        gameObj.transform.scale.x = radius;
+        gameObj.transform.scale = glm::vec3(radius);
         gameObj.pointLight = std::make_unique<PointLightComponent>();
         gameObj.pointLight->lightIntensity = intensity;
+        gameObj.pointLight->radius = radius; // Set the actual light radius
         return gameObj;
     }
 
