@@ -3,6 +3,7 @@
 #include "AppBuffer.h"
 #include "Sphere.h"
 #include "CpuRaytracer.h"
+#include <AppTexture.h>
 
 namespace app {
 
@@ -17,6 +18,7 @@ namespace app {
 			AppDescriptorPool::Builder(engineDevice)
 			.setMaxSets(EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
 			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
+			.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
 			.build();
 		loadGameObjects();
 	}
@@ -39,13 +41,17 @@ namespace app {
 		auto globalSetLayout =
 			AppDescriptorSetLayout::Builder(engineDevice)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
+			.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 			.build();
 		std::vector<VkDescriptorSet> globalDescriptorSets(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
+		auto leninTexture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
 
 		for (int i = 0; i < globalDescriptorSets.size(); i++) {
 			auto bufferInfo = uboBuffers[i]->descriptorInfo();
+			auto imageInfo = leninTexture->getDescriptorInfo();
 			AppDescriptorWriter(*globalSetLayout, *globalPool)
 				.writeBuffer(0, &bufferInfo)
+				.writeImage(1, &imageInfo)
 				.build(globalDescriptorSets[i]);
 		}
 
