@@ -33,6 +33,7 @@ namespace app{
 		VkCommandBuffer commandBuffer;
 		Camera& camera;
 		VkDescriptorSet globalDescriptorSet;
+		std::unordered_map<GameObject::id_t, VkDescriptorSet>& objectDescriptorSets;
 		GameObject::Map& gameObjects;
 	};
 }

@@ -28,7 +28,7 @@ namespace app {
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(PointLightPushConstants);
 
-		std::vector<VkDescriptorSetLayout> descriptorSetLayouts{ globalSetLayout };
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts{ globalSetLayout, globalSetLayout };
 
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -95,11 +95,21 @@ namespace app {
 			frameInfo.commandBuffer,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			pipelineLayout,
-			0,
-			1,
+			0, 1,
 			&frameInfo.globalDescriptorSet,
-			0,
-			nullptr);
+			0, nullptr);
+
+		VkDescriptorSet dummySet = VK_NULL_HANDLE;
+		if (!frameInfo.objectDescriptorSets.empty()) {
+			dummySet = frameInfo.objectDescriptorSets.begin()->second;
+			vkCmdBindDescriptorSets(
+				frameInfo.commandBuffer,
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				pipelineLayout,
+				1, 1,
+				&dummySet,
+				0, nullptr);
+		}
 
 		for (auto& kv : frameInfo.gameObjects) {
 			auto& obj = kv.second;

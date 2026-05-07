@@ -51,6 +51,8 @@ namespace app {
 
 
 		std::unique_ptr<AppDescriptorPool> globalPool{};
+		std::unordered_map<GameObject::id_t, std::vector<VkDescriptorSet>> objectDescriptorSets;
+
 		GameObject::Map gameObjects;
 	};
 }

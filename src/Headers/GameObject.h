@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include "AppTexture.h"
 
 //glm
 #include "glm/gtc/matrix_transform.hpp"
@@ -50,6 +51,7 @@ namespace app {
 
         glm::vec3 color{};
         TransformComponent transform{};
+        std::shared_ptr<Texture> texture = nullptr;
 
         // Optional pointer components
         std::shared_ptr<Model> model{};
