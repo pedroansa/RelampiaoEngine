@@ -21,7 +21,7 @@ namespace app {
 		}
 		int totalSets = EngineSwapChain::MAX_FRAMES_IN_FLIGHT * (meshCount + 1);
 
-		globalPool = 
+		globalPool =
 			AppDescriptorPool::Builder(engineDevice)
 			.setMaxSets(totalSets)
 			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, totalSets)
@@ -30,7 +30,7 @@ namespace app {
 
 	}
 
-	VulkanApp::~VulkanApp(){}
+	VulkanApp::~VulkanApp() {}
 
 	void VulkanApp::run()
 	{
@@ -85,16 +85,16 @@ namespace app {
 		glm::vec3 directionToOrigin = glm::normalize(glm::vec3(0.0f) - viewerObject.transform.translation);
 		viewerObject.transform.rotation.y = atan2(directionToOrigin.x, directionToOrigin.z); // yaw
 		viewerObject.transform.rotation.x = asin(-directionToOrigin.y); // pitch
-		 
+
 		auto currentTime = std::chrono::high_resolution_clock::now();
 
-		InitialRenderSystem initialRenderSystem{ engineDevice, appRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout()};
+		InitialRenderSystem initialRenderSystem{ engineDevice, appRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout() };
 		PointLightSystem pointLightSystem{ engineDevice, appRenderer.getSwapChainRenderPass(), globalSetLayout->getDescriptorSetLayout() };
 		KeyboardController controler{ };
 
 		CpuRaytracer raytracer{ WIDTH, HEIGHT, 3 };
-		float aspect = appRenderer.getAspectRatio(); 
-		GlobalUbo ubo{};                              
+		float aspect = appRenderer.getAspectRatio();
+		GlobalUbo ubo{};
 
 		while (!appWindow.shouldClose()) {
 			glfwPollEvents();
@@ -106,6 +106,19 @@ namespace app {
 
 			controler.moveInPlaneXZ(appWindow.getGLFWwindow(), frameTime, viewerObject);
 			camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
+
+			for (auto& kv : gameObjects) {
+				auto& obj = kv.second;
+
+				// Tenta fazer cast para Sphere&
+				try {
+					Sphere& sphere = dynamic_cast<Sphere&>(obj);
+					sphere.update(frameTime);
+				}
+				catch (const std::bad_cast&) {
+					// Não é uma Sphere, ignora
+				}
+			}
 
 			float aspect = appRenderer.getAspectRatio();
 			//camera.setOrthographicProjection(-aspect, aspect, -1, 1, -1, 1);
@@ -190,7 +203,7 @@ namespace app {
 		for (auto& v : modelBuilder.vertices) {
 			v.position += offset;
 		}
-		modelBuilder.indices = { 0,  1,  2,  0,  3,  1,  4,  5,  6,  4,  7,  5,  8,  9,  10, 8,  11, 9, 
+		modelBuilder.indices = { 0,  1,  2,  0,  3,  1,  4,  5,  6,  4,  7,  5,  8,  9,  10, 8,  11, 9,
 			12, 13, 14, 12, 15, 13, 16, 17, 18, 16, 19, 17, 20, 21, 22, 20, 23, 21 };
 
 		return std::make_unique<Model>(device, modelBuilder);
@@ -198,51 +211,56 @@ namespace app {
 
 	void VulkanApp::loadGameObjects()
 	{
-		std::shared_ptr<Model> model = Model::createModelFromFile(engineDevice, "models/lenin.obj");
-		auto flat_vase = GameObject::createGameObject();
-		flat_vase.model = model;
-		flat_vase.transform.translation = { 0.0f, .0f, 0.0f };
-		flat_vase.transform.scale = { 0.1f, 0.1f, 0.1f };
-		flat_vase.transform.rotation = { 1.5f , 1.5f, 0.0f };
-		flat_vase.texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png");
+		// Sol como referência
+		float sunRadius = 1.0f;
 
-		gameObjects.emplace(flat_vase.getId(), std::move(flat_vase));
+		// Escalas separadas para tamanho e distância
+		float SIZE_SCALE = 2.0f;    // Tamanhos relativos
+		float DIST_SCALE = 1.0f;    // Distâncias
 
-		model = Model::createModelFromFile(engineDevice, "models/quad.obj");
-		auto floor = GameObject::createGameObject();
-		floor.model = model;
-		floor.transform.translation = { 0.f, .5f, 0.f };
-		floor.transform.scale = { 3.f, 1.f, 3.f };
-		floor.texture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
-		gameObjects.emplace(floor.getId(), std::move(floor));
+		// ========== SOL ==========
+		auto sunMesh = Sphere::createSphere(engineDevice, sunRadius, false);
+		sunMesh.transform.translation = { 0.0f, 0.0f, 0.0f };
+		sunMesh.color = { 1.0f, 0.9f, 0.3f };
+		sunMesh.texture = std::make_shared<Texture>(engineDevice, "../Models/sun.jpg");
+		gameObjects.emplace(sunMesh.getId(), std::move(sunMesh));
 
-		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
-		//gameObjects.emplace(sphere.getId(), std::move(sphere));
+		// Luz do sol
+		auto sunLight = GameObject::makePointLight(200.0f);
+		sunLight.color = { 1.0f, 1.0f, 1.0f };
+		sunLight.transform.translation = { 0.0f, 0.0f, 0.0f };
+		sunLight.pointLight->lightIntensity = 100000;
+		gameObjects.emplace(sunLight.getId(), std::move(sunLight));
 
-		//Sphere sphere1 = Sphere::createSphere(2.0f, glm::vec3(1.0f, 0.0f, 0.0f)); // Red sphere with radius 2
-		//gameObjects.emplace(sphere1.getId(), std::move(sphere1));
+		// ========== PLANETAS ==========
 
-		std::vector<glm::vec3> lightColors{
-		  {1.f, .1f, .1f},
-		  {.1f, .1f, 1.f},
-		  {.1f, 1.f, .1f},
-		  {1.f, 1.f, .1f},
-		  {.1f, 1.f, 1.f},
-		  {1.f, 1.f, 1.f}  //
-		};
+		// Mercúrio
+		float mercuryRadius = sunRadius * 0.0038f * SIZE_SCALE * 50;
+		float mercuryDist = 12.0f * DIST_SCALE;
+		auto mercury = Sphere::createSphere(engineDevice, mercuryRadius, false);
+		mercury.transform.translation = { mercuryDist, 0.0f, 0.0f };
+		mercury.color = { 0.8f, 0.6f, 0.4f };
+		mercury.orbitRadius = 12.0f;
+		mercury.orbitSpeed = 4.0f;
+		mercury.texture = std::make_shared<Texture>(engineDevice, "../Models/mercury.jpg");
+		gameObjects.emplace(mercury.getId(), std::move(mercury));
 
-		for (int i = 0; i < lightColors.size(); i++) {
-			auto pointLight = GameObject::makePointLight(100.0f);
-			pointLight.color = lightColors[i];
+		// Vênus
+		float venusRadius = sunRadius * 0.0095f * SIZE_SCALE * 50;
+		float venusDist = 22.0f * DIST_SCALE;
+		auto venus = Sphere::createSphere(engineDevice, venusRadius, false);
+		venus.transform.translation = { venusDist, 0.0f, 0.0f };
+		venus.color = { 1.0f, 0.8f, 0.6f };
+		venus.texture = std::make_shared<Texture>(engineDevice, "../Models/venus.jpg");
+		gameObjects.emplace(venus.getId(), std::move(venus));
 
-			auto rotateLight = glm::rotate(
-				glm::mat4(1.f),
-				(i * glm::two_pi<float>()) / lightColors.size(),
-				{ 0.f, -1.f, 0.f });
-
-			pointLight.transform.translation = glm::vec3(rotateLight * glm::vec4(-1.f, -1.f, -1.f, 1.f));
-			gameObjects.emplace(pointLight.getId(), std::move(pointLight));
-		}
+		// Terra
+		float earthRadius = sunRadius * 0.01f * SIZE_SCALE * 50;
+		float earthDist = 30.0f * DIST_SCALE;
+		auto earth = Sphere::createSphere(engineDevice, earthRadius, false);
+		earth.transform.translation = { earthDist, 0.0f, 0.0f };
+		earth.color = { 0.2f, 0.4f, 0.8f };
+		earth.texture = std::make_shared<Texture>(engineDevice, "../Models/earth.jpg");
+		gameObjects.emplace(earth.getId(), std::move(earth));
 	}
-
 }

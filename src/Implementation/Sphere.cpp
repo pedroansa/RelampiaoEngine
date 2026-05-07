@@ -35,6 +35,24 @@ namespace app {
         return sphere;
     }
 
+    void Sphere::update(float deltaTime) {
+        // Atualiza órbita
+        if (orbitSpeed > 0.0f && orbitRadius > 0.0f) {
+            orbitAngle += orbitSpeed * deltaTime;
+            if (orbitAngle > glm::two_pi<float>()) {
+                orbitAngle -= glm::two_pi<float>();
+            }
+
+            transform.translation.x = orbitCenter.x + orbitRadius * cos(orbitAngle);
+            transform.translation.z = orbitCenter.z + orbitRadius * sin(orbitAngle);
+        }
+
+        // Atualiza rotação própria
+        if (selfRotationSpeed > 0.0f) {
+            transform.rotation.y += selfRotationSpeed * deltaTime;
+        }
+    }
+
     void Sphere::setRadius(float newRadius) {
         this->radius = newRadius;
         this->transform.scale = glm::vec3(newRadius);

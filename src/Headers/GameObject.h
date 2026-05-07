@@ -56,7 +56,7 @@ namespace app {
         // Optional pointer components
         std::shared_ptr<Model> model{};
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
-
+        virtual void update(float deltaTime) {}
         
     protected:
         GameObject(id_t objId) : id{ objId } {}
