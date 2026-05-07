@@ -13,14 +13,21 @@ namespace app {
 		std::cout << "sizeof(GlobalUbo): " << sizeof(GlobalUbo) << std::endl;
 		std::cout << "sizeof(PointLight): " << sizeof(PointLight) << std::endl;
 		//std::cout << "offsetof(GlobalUbo, pointLights): " << offsetof(GlobalUbo, pointLights) << std::endl;
+		loadGameObjects();
+
+		int meshCount = 0;
+		for (auto& kv : gameObjects) {
+			if (kv.second.model != nullptr) meshCount++;
+		}
+		int totalSets = EngineSwapChain::MAX_FRAMES_IN_FLIGHT * (meshCount + 1);
 
 		globalPool = 
 			AppDescriptorPool::Builder(engineDevice)
-			.setMaxSets(EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
-			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
-			.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, EngineSwapChain::MAX_FRAMES_IN_FLIGHT)
+			.setMaxSets(totalSets)
+			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, totalSets)
+			.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, totalSets)
 			.build();
-		loadGameObjects();
+
 	}
 
 	VulkanApp::~VulkanApp(){}
@@ -44,15 +51,32 @@ namespace app {
 			.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 			.build();
 		std::vector<VkDescriptorSet> globalDescriptorSets(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
-		auto leninTexture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
+		auto defaultTexture = std::make_shared<Texture>(engineDevice, "../Models/white.png");
 
 		for (int i = 0; i < globalDescriptorSets.size(); i++) {
 			auto bufferInfo = uboBuffers[i]->descriptorInfo();
-			auto imageInfo = leninTexture->getDescriptorInfo();
+			auto imageInfo = defaultTexture->getDescriptorInfo();
 			AppDescriptorWriter(*globalSetLayout, *globalPool)
 				.writeBuffer(0, &bufferInfo)
 				.writeImage(1, &imageInfo)
 				.build(globalDescriptorSets[i]);
+		}
+
+		for (auto& kv : gameObjects) {
+			auto& obj = kv.second;
+			if (obj.model == nullptr) continue;
+
+			auto& tex = obj.texture ? obj.texture : defaultTexture;
+			objectDescriptorSets[obj.getId()].resize(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
+
+			for (int i = 0; i < EngineSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+				auto bufferInfo = uboBuffers[i]->descriptorInfo();
+				auto imageInfo = tex->getDescriptorInfo();
+				AppDescriptorWriter(*globalSetLayout, *globalPool)
+					.writeBuffer(0, &bufferInfo)
+					.writeImage(1, &imageInfo)
+					.build(objectDescriptorSets[obj.getId()][i]);
+			}
 		}
 
 		Camera camera{};
@@ -89,7 +113,13 @@ namespace app {
 
 			if (auto commandBuffer = appRenderer.beginFrame()) {
 				int frameIndex = appRenderer.getCurrentFrameIndex();
-				FrameInfo frameInfo{ frameIndex, frameTime, commandBuffer, camera,  globalDescriptorSets[frameIndex], gameObjects };
+
+				std::unordered_map<GameObject::id_t, VkDescriptorSet> frameDescriptorSets;
+				for (auto& kv : objectDescriptorSets) {
+					frameDescriptorSets[kv.first] = kv.second[frameIndex];
+				}
+
+				FrameInfo frameInfo{ frameIndex, frameTime, commandBuffer, camera,  globalDescriptorSets[frameIndex], frameDescriptorSets, gameObjects };
 
 				// Update memory
 				GlobalUbo ubo{};
@@ -174,6 +204,8 @@ namespace app {
 		flat_vase.transform.translation = { 0.0f, .0f, 0.0f };
 		flat_vase.transform.scale = { 0.1f, 0.1f, 0.1f };
 		flat_vase.transform.rotation = { 1.5f , 1.5f, 0.0f };
+		flat_vase.texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png");
+
 		gameObjects.emplace(flat_vase.getId(), std::move(flat_vase));
 
 		model = Model::createModelFromFile(engineDevice, "models/quad.obj");
@@ -181,6 +213,7 @@ namespace app {
 		floor.model = model;
 		floor.transform.translation = { 0.f, .5f, 0.f };
 		floor.transform.scale = { 3.f, 1.f, 3.f };
+		floor.texture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
 		gameObjects.emplace(floor.getId(), std::move(floor));
 
 		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);

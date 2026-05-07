@@ -21,7 +21,7 @@ namespace app {
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(SimplePushConstantData);
 
-		std::vector<VkDescriptorSetLayout> descriptorSetLayouts{ globalSetLayout };
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts{ globalSetLayout, globalSetLayout };
 
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -92,16 +92,8 @@ namespace app {
 			break;
 		}
 
-		vkCmdBindDescriptorSets(
-			frameInfo.commandBuffer,
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipelineLayout,
-			0,
-			1,
-			&frameInfo.globalDescriptorSet,
-			0,
-			nullptr);
-
+		vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout, 0, 1, &frameInfo.globalDescriptorSet, 0, nullptr);
 		// Render
 		//auto projectionView = frameInfo.camera.getProjection() * frameInfo.camera.getView();
 
@@ -114,6 +106,14 @@ namespace app {
 			//obj.transform.rotation.y += 0.1f * frameInfo.frameTime;
 			push.modelMatrix = obj.transform.mat4();
 			push.normalMatrix = obj.transform.normalMatrix();
+
+			auto& descSet = frameInfo.objectDescriptorSets.at(obj.getId());
+
+			if (frameInfo.objectDescriptorSets.count(obj.getId())) {
+				auto& descSet = frameInfo.objectDescriptorSets.at(obj.getId());
+				vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+					pipelineLayout, 1, 1, &descSet, 0, nullptr);
+			}
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,
