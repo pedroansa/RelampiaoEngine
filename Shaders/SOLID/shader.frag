@@ -30,7 +30,9 @@ layout(push_constant) uniform Push {
 
 void main() {
     float distanceFromCenter = length(fragPosWorld);
-    bool isSun = (distanceFromCenter < 2.0);
+    bool isSun = (distanceFromCenter < 500.0);
+    isSun = false;
+
     vec4 texColor = texture(texSampler, fragUV);
 
 
