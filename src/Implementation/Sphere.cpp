@@ -38,7 +38,7 @@ namespace app {
     void Sphere::update(float deltaTime) {
         // Atualiza órbita
         if (orbitSpeed > 0.0f && orbitRadius > 0.0f) {
-            orbitAngle += orbitSpeed * deltaTime;
+            orbitAngle += orbitSpeed/100.0 * deltaTime;
             if (orbitAngle > glm::two_pi<float>()) {
                 orbitAngle -= glm::two_pi<float>();
             }
