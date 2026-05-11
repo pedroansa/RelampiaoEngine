@@ -99,18 +99,18 @@ namespace app {
 
 		for (auto& kv : frameInfo.gameObjects) {
 			auto& obj = kv.second;
-			if (obj.model == nullptr) continue;
+			if (obj->model == nullptr) continue;
 
 			SimplePushConstantData push{};
 			// rotate
-			//obj.transform.rotation.y += 0.1f * frameInfo.frameTime;
-			push.modelMatrix = obj.transform.mat4();
-			push.normalMatrix = obj.transform.normalMatrix();
+			//obj->transform.rotation.y += 0.1f * frameInfo.frameTime;
+			push.modelMatrix = obj->transform.mat4();
+			push.normalMatrix = obj->transform.normalMatrix();
 
-			auto& descSet = frameInfo.objectDescriptorSets.at(obj.getId());
+			auto& descSet = frameInfo.objectDescriptorSets.at(obj->getId());
 
-			if (frameInfo.objectDescriptorSets.count(obj.getId())) {
-				auto& descSet = frameInfo.objectDescriptorSets.at(obj.getId());
+			if (frameInfo.objectDescriptorSets.count(obj->getId())) {
+				auto& descSet = frameInfo.objectDescriptorSets.at(obj->getId());
 				vkCmdBindDescriptorSets(frameInfo.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 					pipelineLayout, 1, 1, &descSet, 0, nullptr);
 			}
@@ -123,8 +123,8 @@ namespace app {
 				sizeof(SimplePushConstantData),
 				&push);
 
-			obj.model->bind(frameInfo.commandBuffer);
-			obj.model->draw(frameInfo.commandBuffer);
+			obj->model->bind(frameInfo.commandBuffer);
+			obj->model->draw(frameInfo.commandBuffer);
 
 		}
 	}

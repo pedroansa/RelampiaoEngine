@@ -32,7 +32,7 @@ namespace app {
     class GameObject {
     public:
         using id_t = unsigned int;
-        using Map = std::unordered_map<id_t, GameObject>;
+        using Map = std::unordered_map<id_t, std::unique_ptr<GameObject>>;
 
         static GameObject createGameObject() {
             static id_t currentId = 0;
@@ -47,7 +47,7 @@ namespace app {
         GameObject(GameObject&&) = default;
         GameObject& operator=(GameObject&&) = default;
 
-        id_t getId() { return id; }
+        id_t getId() { return id; } 
 
         glm::vec3 color{};
         TransformComponent transform{};
@@ -57,7 +57,8 @@ namespace app {
         std::shared_ptr<Model> model{};
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
         virtual void update(float deltaTime) {}
-        
+        virtual ~GameObject() = default;
+
     protected:
         GameObject(id_t objId) : id{ objId } {}
         id_t id;

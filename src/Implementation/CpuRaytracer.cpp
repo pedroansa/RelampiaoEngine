@@ -45,22 +45,22 @@ namespace app {
         // --- Carrega geometria dos GameObjects ---
         for (const auto& kv : gameObjects) {
             const auto& obj = kv.second;
-            if (!obj.model || obj.pointLight != nullptr) continue; // pula luzes
+            if (!obj->model || obj->pointLight != nullptr) continue; // pula luzes
 
             // Verifica se o modelo tem vertices em CPU
-            if (obj.model->vertices.empty()) {
+            if (obj->model->vertices.empty()) {
                 std::cerr << "[CpuRaytracer] Model sem vertices em CPU. "
                           << "Adicione 'vertices' e 'indices' como membros publicos de Model "
                           << "e guarde uma copia no construtor de Model.\n";
                 continue;
             }
 
-            TransformComponent transform = obj.transform;
+            TransformComponent transform = obj->transform;
             glm::mat4 modelMatrix = transform.mat4();
             glm::mat3 normalMatrix = transform.normalMatrix();
 
-            const auto& verts   = obj.model->vertices;
-            const auto& indices = obj.model->indices;
+            const auto& verts   = obj->model->vertices;
+            const auto& indices = obj->model->indices;
 
             // Triangulos indexados
             if (!indices.empty()) {
@@ -175,7 +175,8 @@ namespace app {
                 if (hit.hit) {
                     color = shade(hit, ray, 0);
                 }
-
+                float exposure = 10.0f; // Aumente este valor (ex: 2.0, 5.0) para clarear tudo
+                color *= exposure;
                 color = toneMap(color);
 
                 int idx = (y * imageWidth + x) * 3;
@@ -304,6 +305,7 @@ namespace app {
             HitInfo reflectHit = traceRay(reflectRay);
             if (reflectHit.hit) {
                 glm::vec3 reflectColor = shade(reflectHit, reflectRay, depth + 1);
+                result = glm::mix(result, reflectColor, reflectivity);
                 result = glm::mix(result, reflectColor, reflectivity);
             }
         }
