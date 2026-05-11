@@ -55,6 +55,14 @@ else()
 endif()
 
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp)
+set(IMGUI_SOURCES
+    "${PROJECT_SOURCE_DIR}/libs/imgui/imgui.cpp"
+    "${PROJECT_SOURCE_DIR}/libs/imgui/imgui_draw.cpp"
+    "${PROJECT_SOURCE_DIR}/libs/imgui/imgui_tables.cpp"
+    "${PROJECT_SOURCE_DIR}/libs/imgui/imgui_widgets.cpp"
+    "${PROJECT_SOURCE_DIR}/libs/imgui/backends/imgui_impl_glfw.cpp"
+    "${PROJECT_SOURCE_DIR}/libs/imgui/backends/imgui_impl_vulkan.cpp"
+)
 
 source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source Files" FILES ${SOURCES})
 file(GLOB_RECURSE HEADER_FILES 
@@ -70,7 +78,8 @@ file(GLOB_RECURSE SHADER_FILES
 )
 source_group(TREE ${PROJECT_SOURCE_DIR}/Shaders PREFIX "Shader Files" FILES ${SHADER_FILES})
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
 
 target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${SHADER_FILES})
 
@@ -97,6 +106,8 @@ if (WIN32)
     ${TINYOBJ_PATH}
     ${GLFW_INCLUDE_DIRS}
     ${GLM_PATH}
+    ${PROJECT_SOURCE_DIR}/libs/imgui
+    ${PROJECT_SOURCE_DIR}/libs/imgui/backends
     )
 
   target_link_directories(${PROJECT_NAME} PUBLIC
