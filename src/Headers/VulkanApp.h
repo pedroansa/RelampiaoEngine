@@ -39,6 +39,8 @@ namespace app {
 
 	private:
 		void loadGameObjects();
+		void loadSolarSystem();
+
 		void sierpinski(std::vector<Model::Vertex>& vertices,
 			int depth,
 			glm::vec2 left,
