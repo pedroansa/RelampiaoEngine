@@ -86,9 +86,7 @@ namespace app {
 		//	"shaders/POINTS/frag.spv",
 		//	pointConfig, pointsVertexInput);
 	}
-	void PointLightSystem::render(FrameInfo& frameInfo)
-	{
-
+	void PointLightSystem::render(FrameInfo& frameInfo) {
 		solidPipeline->bind(frameInfo.commandBuffer);
 
 		vkCmdBindDescriptorSets(
@@ -99,17 +97,22 @@ namespace app {
 			&frameInfo.globalDescriptorSet,
 			0, nullptr);
 
-		VkDescriptorSet dummySet = VK_NULL_HANDLE;
-		if (!frameInfo.objectDescriptorSets.empty()) {
-			dummySet = frameInfo.objectDescriptorSets.begin()->second;
-			vkCmdBindDescriptorSets(
-				frameInfo.commandBuffer,
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				pipelineLayout,
-				1, 1,
-				&dummySet,
-				0, nullptr);
+		VkDescriptorSet validSet = VK_NULL_HANDLE;
+		for (auto const& [id, sets] : frameInfo.objectDescriptorSets) {
+			if (sets != VK_NULL_HANDLE) {
+				validSet = sets;
+				break;
+			}
 		}
+		if (validSet == VK_NULL_HANDLE) return;
+
+		vkCmdBindDescriptorSets(
+			frameInfo.commandBuffer,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipelineLayout,
+			1, 1,
+			&validSet,
+			0, nullptr);
 
 		for (auto& kv : frameInfo.gameObjects) {
 			auto& obj = kv.second;
@@ -129,9 +132,7 @@ namespace app {
 				&push);
 			vkCmdDraw(frameInfo.commandBuffer, 6, 1, 0, 0);
 		}
-		
 	}
-
 	void PointLightSystem::update(FrameInfo& frameInfo, GlobalUbo& ubo)
 	{
 		auto rotateLight = glm::rotate(glm::mat4(1.f), 0.5f * frameInfo.frameTime, { 0.f, -1.f, 0.f });

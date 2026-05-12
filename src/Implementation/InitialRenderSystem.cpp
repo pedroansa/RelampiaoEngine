@@ -100,6 +100,18 @@ namespace app {
 		for (auto& kv : frameInfo.gameObjects) {
 			auto& obj = kv.second;
 			if (obj->model == nullptr) continue;
+			
+			auto it = frameInfo.objectDescriptorSets.find(obj->getId());
+			if (it == frameInfo.objectDescriptorSets.end()) {
+				continue; // Se não achou o descritor (comum no frame de transição), pula o objeto
+			}
+
+			VkDescriptorSet descSet = it->second;
+
+			// Verifica se o handle do Vulkan é válido (não é nulo/0x0)
+			if (descSet == VK_NULL_HANDLE) {
+				continue; // Se o set existe no mapa mas é nulo, pula para não crashar o driver
+			}
 
 			SimplePushConstantData push{};
 			// rotate
@@ -107,7 +119,6 @@ namespace app {
 			push.modelMatrix = obj->transform.mat4();
 			push.normalMatrix = obj->transform.normalMatrix();
 
-			auto& descSet = frameInfo.objectDescriptorSets.at(obj->getId());
 
 			if (frameInfo.objectDescriptorSets.count(obj->getId())) {
 				auto& descSet = frameInfo.objectDescriptorSets.at(obj->getId());
