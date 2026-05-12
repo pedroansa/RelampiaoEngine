@@ -30,6 +30,9 @@ namespace app {
 		static constexpr int WIDTH = 800;
 		static constexpr int HEIGHT = 600;
 
+		enum class Scene { DEFAULT, SOLAR_SYSTEM };
+		Scene currentScene = Scene::DEFAULT;
+
 		VulkanApp();
 		~VulkanApp();
 
@@ -55,10 +58,15 @@ namespace app {
 
 		std::unique_ptr<AppDescriptorPool> globalPool{};
 		std::unordered_map<GameObject::id_t, std::vector<VkDescriptorSet>> objectDescriptorSets;
+		std::unique_ptr<AppDescriptorSetLayout> globalSetLayout; 
+		std::vector<std::unique_ptr<AppBuffer>> uboBuffers;     
+		std::shared_ptr<Texture> defaultTexture;
 
 		GameObject::Map gameObjects;
 
 		std::unique_ptr<EngineImgui> engineImgui;
+
+		void rebuildObjectDescriptorSets();
 	};
 }
 
