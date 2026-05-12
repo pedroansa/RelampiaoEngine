@@ -19,7 +19,7 @@ namespace app {
 		for (auto& kv : gameObjects) {
 			if (kv.second->model != nullptr) meshCount++;
 		}
-		int totalSets = EngineSwapChain::MAX_FRAMES_IN_FLIGHT * (meshCount + 1);
+		int totalSets = EngineSwapChain::MAX_FRAMES_IN_FLIGHT * (meshCount + 1); // With high values we can change scenes turn off by default
 
 		globalPool =
 			AppDescriptorPool::Builder(engineDevice)
@@ -27,6 +27,12 @@ namespace app {
 			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, totalSets)
 			.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, totalSets)
 			.build();
+		engineImgui = std::make_unique<EngineImgui>(
+			appWindow,
+			engineDevice,
+			appRenderer.getSwapChainRenderPass(),
+			EngineSwapChain::MAX_FRAMES_IN_FLIGHT
+		);
 
 	}
 
@@ -34,8 +40,7 @@ namespace app {
 
 	void VulkanApp::run()
 	{
-		std::vector<std::unique_ptr<AppBuffer>> uboBuffers(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
-
+		uboBuffers.resize(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
 		for (int i = 0; i < uboBuffers.size(); i++) {
 			uboBuffers[i] = std::make_unique<AppBuffer>(engineDevice,
 				sizeof(GlobalUbo),
@@ -45,13 +50,15 @@ namespace app {
 			uboBuffers[i]->map();
 		}
 
-		auto globalSetLayout =
-			AppDescriptorSetLayout::Builder(engineDevice)
+		globalSetLayout = AppDescriptorSetLayout::Builder(engineDevice)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
 			.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
 			.build();
+
+		defaultTexture = std::make_shared<Texture>(engineDevice, "../Models/white.png");
+		rebuildObjectDescriptorSets();
+
 		std::vector<VkDescriptorSet> globalDescriptorSets(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
-		auto defaultTexture = std::make_shared<Texture>(engineDevice, "../Models/white.png");
 
 		for (int i = 0; i < globalDescriptorSets.size(); i++) {
 			auto bufferInfo = uboBuffers[i]->descriptorInfo();
@@ -60,23 +67,6 @@ namespace app {
 				.writeBuffer(0, &bufferInfo)
 				.writeImage(1, &imageInfo)
 				.build(globalDescriptorSets[i]);
-		}
-
-		for (auto& kv : gameObjects) {
-			auto& obj = kv.second;
-			if (obj->model == nullptr) continue;
-
-			auto& tex = obj->texture ? obj->texture : defaultTexture;
-			objectDescriptorSets[obj->getId()].resize(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
-
-			for (int i = 0; i < EngineSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
-				auto bufferInfo = uboBuffers[i]->descriptorInfo();
-				auto imageInfo = tex->getDescriptorInfo();
-				AppDescriptorWriter(*globalSetLayout, *globalPool)
-					.writeBuffer(0, &bufferInfo)
-					.writeImage(1, &imageInfo)
-					.build(objectDescriptorSets[obj->getId()][i]);
-			}
 		}
 
 		Camera camera{};
@@ -98,6 +88,27 @@ namespace app {
 
 		while (!appWindow.shouldClose()) {
 			glfwPollEvents();
+			auto request = engineImgui->getSceneRequest();
+			if (request != SceneRequest::None) {
+				vkDeviceWaitIdle(engineDevice.device()); // Para tudo!
+
+				if (request == SceneRequest::Default) loadGameObjects();
+				else if (request == SceneRequest::SolarSystem) loadSolarSystem();
+
+				// Reconstrua o mapa ANTES de continuar
+				rebuildObjectDescriptorSets();
+				for (int i = 0; i < globalDescriptorSets.size(); i++) {
+					auto bufferInfo = uboBuffers[i]->descriptorInfo();
+					auto imageInfo = defaultTexture->getDescriptorInfo();
+					AppDescriptorWriter(*globalSetLayout, *globalPool)
+						.writeBuffer(0, &bufferInfo)
+						.writeImage(1, &imageInfo)
+						.build(globalDescriptorSets[i]);
+				}
+				engineImgui->resetSceneRequest();
+				currentTime = std::chrono::high_resolution_clock::now();
+				continue; // Pula o restante deste frame para limpar o cache do Command Buffer
+			}
 
 			auto newTime = std::chrono::high_resolution_clock::now();
 			float frameTime =
@@ -108,8 +119,6 @@ namespace app {
 			camera.setViewYXZ(viewerObject.transform.translation, viewerObject.transform.rotation);
 
 			for (auto& kv : gameObjects) {
-				// kv.second é um std::unique_ptr<GameObject>
-				// Se for Sphere, chama Sphere::update. Se não, chama GameObject::update.
 				kv.second->update(frameTime);
 			}
 
@@ -120,9 +129,14 @@ namespace app {
 			if (auto commandBuffer = appRenderer.beginFrame()) {
 				int frameIndex = appRenderer.getCurrentFrameIndex();
 
+				engineImgui->newFrame();
+				engineImgui->runDefaultUi(initialRenderSystem, gameObjects);
+
 				std::unordered_map<GameObject::id_t, VkDescriptorSet> frameDescriptorSets;
 				for (auto& kv : objectDescriptorSets) {
-					frameDescriptorSets[kv.first] = kv.second[frameIndex];
+					if (frameIndex < kv.second.size()) {
+						frameDescriptorSets[kv.first] = kv.second[frameIndex];
+					}
 				}
 
 				FrameInfo frameInfo{ frameIndex, frameTime, commandBuffer, camera,  globalDescriptorSets[frameIndex], frameDescriptorSets, gameObjects };
@@ -143,6 +157,7 @@ namespace app {
 				appRenderer.beginSwapChainRenderPass(commandBuffer);
 				initialRenderSystem.renderGameObjects(frameInfo);
 				pointLightSystem.render(frameInfo);
+				engineImgui->render(commandBuffer);
 				appRenderer.endSwapChainRenderPass(commandBuffer);
 				appRenderer.endFrame();
 
@@ -204,6 +219,8 @@ namespace app {
 
 	void VulkanApp::loadGameObjects()
 	{
+		vkDeviceWaitIdle(engineDevice.device());
+		gameObjects.clear();
 		std::shared_ptr<Model> model = Model::createModelFromFile(engineDevice, "models/lenin.obj");
 		auto flat_vase = std::make_unique<GameObject>(GameObject::createGameObject());
 		flat_vase->model = model;
@@ -252,6 +269,8 @@ namespace app {
 	}
 	void VulkanApp::loadSolarSystem()
 	{
+		vkDeviceWaitIdle(engineDevice.device()); 
+		gameObjects.clear();
 		// 1. Configurações Globais
 		float sunRadius = 20.0f;        // Sol um pouco maior para destaque
 		float SIZE_SCALE = 2.0f;        // Escala global de tamanho
@@ -354,5 +373,29 @@ namespace app {
 		neptune->selfRotationSpeed = baseSpeed / 0.67f;
 		neptune->texture = std::make_shared<Texture>(engineDevice, "../Models/neptune.jpg");
 		gameObjects.emplace(neptune->getId(), std::move(neptune));
+	}
+
+	void VulkanApp::rebuildObjectDescriptorSets() {
+		objectDescriptorSets.clear();
+
+		for (auto& kv : gameObjects) {
+			auto& obj = kv.second;
+			if (obj->model == nullptr) continue;
+
+			auto& tex = obj->texture ? obj->texture : defaultTexture;
+			auto id = obj->getId();
+
+			objectDescriptorSets[id].resize(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
+
+			for (int i = 0; i < EngineSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
+				auto bufferInfo = uboBuffers[i]->descriptorInfo();
+				auto imageInfo = tex->getDescriptorInfo();
+
+				AppDescriptorWriter(*globalSetLayout, *globalPool)
+					.writeBuffer(0, &bufferInfo)
+					.writeImage(1, &imageInfo)
+					.build(objectDescriptorSets[id][i]);
+			}
+		}
 	}
 }
