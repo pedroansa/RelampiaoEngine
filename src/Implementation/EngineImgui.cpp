@@ -133,6 +133,26 @@ namespace app {
                 ImGui::EndTabItem();
             }
 
+            if (ImGui::BeginTabItem("Scenes")) {
+                ImGui::Text("Switch Environment:");
+
+                if (ImGui::Button("Load Default Scene")) {
+                    sceneRequest = SceneRequest::Default;
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Load Solar System")) {
+                    sceneRequest = SceneRequest::SolarSystem;
+                }
+
+                if (sceneRequest != SceneRequest::None) {
+                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Loading scene...");
+                }
+
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
 
