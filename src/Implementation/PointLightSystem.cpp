@@ -113,12 +113,12 @@ namespace app {
 
 		for (auto& kv : frameInfo.gameObjects) {
 			auto& obj = kv.second;
-			if (obj.pointLight == nullptr) continue;
+			if (obj->pointLight == nullptr) continue;
 
 			PointLightPushConstants push{};
-			push.position = glm::vec4(obj.transform.translation, 1.f);
-			push.color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
-			push.radius = obj.transform.scale.x;
+			push.position = glm::vec4(obj->transform.translation, 1.f);
+			push.color = glm::vec4(obj->color, obj->pointLight->lightIntensity);
+			push.radius = obj->transform.scale.x;
 
 			vkCmdPushConstants(
 				frameInfo.commandBuffer,
@@ -138,20 +138,20 @@ namespace app {
 		int lightIndex = 0;
 		for (auto& kv : frameInfo.gameObjects) {
 			auto& obj = kv.second;
-			if (obj.pointLight == nullptr) continue;
+			if (obj->pointLight == nullptr) continue;
 			
 			assert(lightIndex < MAX_LIGHTS && "Point lights exceed maximum specified");
-			obj.transform.translation = glm::vec3(rotateLight * glm::vec4(obj.transform.translation, 1.f));
+			obj->transform.translation = glm::vec3(rotateLight * glm::vec4(obj->transform.translation, 1.f));
 
-			ubo.pointLights[lightIndex].position = glm::vec4(obj.transform.translation, 1.f);
-			ubo.pointLights[lightIndex].color = glm::vec4(obj.color, obj.pointLight->lightIntensity);
-			ubo.pointLights[lightIndex].data.x = obj.pointLight->radius;
+			ubo.pointLights[lightIndex].position = glm::vec4(obj->transform.translation, 1.f);
+			ubo.pointLights[lightIndex].color = glm::vec4(obj->color, obj->pointLight->lightIntensity);
+			ubo.pointLights[lightIndex].data.x = obj->pointLight->radius;
 
 			// DEBUG: Print light info
-			/*std::cout << "Light " << lightIndex << ": pos=(" << obj.transform.translation.x << ", "
-				<< obj.transform.translation.y << ", " << obj.transform.translation.z
-				<< "), color=(" << obj.color.r << ", " << obj.color.g << ", " << obj.color.b
-				<< "), intensity=" << obj.pointLight->lightIntensity << std::endl;*/
+			/*std::cout << "Light " << lightIndex << ": pos=(" << obj->transform.translation.x << ", "
+				<< obj->transform.translation.y << ", " << obj->transform.translation.z
+				<< "), color=(" << obj->color.r << ", " << obj->color.g << ", " << obj->color.b
+				<< "), intensity=" << obj->pointLight->lightIntensity << std::endl;*/
 
 			lightIndex += 1;
 		}

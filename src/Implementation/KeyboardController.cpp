@@ -31,6 +31,9 @@ namespace app {
         if (glfwGetKey(window, keys.moveUp) == GLFW_PRESS) moveDir += upDir;
         if (glfwGetKey(window, keys.moveDown) == GLFW_PRESS) moveDir -= upDir;
 
+        if (glfwGetKey(window, keys.boost) == GLFW_PRESS) moveSpeed = 10;
+        else moveSpeed = 1;
+
         if (glm::dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) {
             gameObject.transform.translation += moveSpeed * dt * glm::normalize(moveDir);
         }

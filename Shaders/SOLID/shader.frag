@@ -29,7 +29,20 @@ layout(push_constant) uniform Push {
 } push;
 
 void main() {
+    float distanceFromCenter = length(fragPosWorld);
+    bool isSun = (distanceFromCenter < 500.0);
+    isSun = false;
+
     vec4 texColor = texture(texSampler, fragUV);
+
+
+    if (isSun) {
+        // Sol brilha sozinho, sem iluminação externa
+        vec3 sunColor = vec3(1.0, 0.9, 0.5);  // Amarelo quente
+        float sunGlow = 1.2;  // Brilho extra
+        outColor = vec4(sunColor * sunGlow * texColor.rgb, 1.0);
+        return;  // Sai da função, não calcula iluminação
+    }
     vec3 ambient = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w;
     vec3 diffuse = vec3(0.0);
     vec3 specular = vec3(0.0);
@@ -62,5 +75,5 @@ void main() {
         specular += lightColor * specTerm * attenuation;
     }
 
-  outColor = vec4((ambient + diffuse) * fragColor * texColor.rgb + specular, 1.0);
+  outColor = vec4((ambient + diffuse) * fragColor * texColor.rgb, 1.0);
 }

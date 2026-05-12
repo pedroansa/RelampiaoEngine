@@ -22,6 +22,7 @@ namespace app {
             int lookRight = GLFW_KEY_RIGHT;
             int lookUp = GLFW_KEY_UP;
             int lookDown = GLFW_KEY_DOWN;
+            int boost = GLFW_KEY_LEFT_SHIFT;
 
             // Pipeline mode controler
             int solidShader = GLFW_KEY_1;
