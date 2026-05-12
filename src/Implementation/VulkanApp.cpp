@@ -27,6 +27,12 @@ namespace app {
 			.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, totalSets)
 			.addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, totalSets)
 			.build();
+		engineImgui = std::make_unique<EngineImgui>(
+			appWindow,
+			engineDevice,
+			appRenderer.getSwapChainRenderPass(),
+			EngineSwapChain::MAX_FRAMES_IN_FLIGHT
+		);
 
 	}
 
@@ -120,6 +126,9 @@ namespace app {
 			if (auto commandBuffer = appRenderer.beginFrame()) {
 				int frameIndex = appRenderer.getCurrentFrameIndex();
 
+				engineImgui->newFrame();
+				engineImgui->runDefaultUi(initialRenderSystem, gameObjects);
+
 				std::unordered_map<GameObject::id_t, VkDescriptorSet> frameDescriptorSets;
 				for (auto& kv : objectDescriptorSets) {
 					frameDescriptorSets[kv.first] = kv.second[frameIndex];
@@ -143,6 +152,7 @@ namespace app {
 				appRenderer.beginSwapChainRenderPass(commandBuffer);
 				initialRenderSystem.renderGameObjects(frameInfo);
 				pointLightSystem.render(frameInfo);
+				engineImgui->render(commandBuffer);
 				appRenderer.endSwapChainRenderPass(commandBuffer);
 				appRenderer.endFrame();
 

@@ -10,6 +10,7 @@
 #include "AppBuffer.h"
 #include "FrameInfo.h"
 #include "AppDescriptor.h"
+#include "EngineImgui.h"
 
 #include <chrono>
 #include <memory>
@@ -57,7 +58,7 @@ namespace app {
 
 		GameObject::Map gameObjects;
 
-		VkDescriptorPool imguiPool;
+		std::unique_ptr<EngineImgui> engineImgui;
 	};
 }
 
