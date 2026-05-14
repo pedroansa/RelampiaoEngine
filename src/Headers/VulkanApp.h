@@ -11,6 +11,8 @@
 #include "FrameInfo.h"
 #include "AppDescriptor.h"
 #include "EngineImgui.h"
+#include "SkyboxRenderSystem.h"
+#include "CubemapTexture.h"
 
 #include <chrono>
 #include <memory>
@@ -65,6 +67,9 @@ namespace app {
 		GameObject::Map gameObjects;
 
 		std::unique_ptr<EngineImgui> engineImgui;
+
+		std::unique_ptr<SkyboxRenderSystem> skyboxSystem;
+		std::shared_ptr<CubemapTexture> skyboxCubemap;
 
 		void rebuildObjectDescriptorSets();
 	};

@@ -84,6 +84,19 @@ namespace app {
 
 		CpuRaytracer raytracer{ WIDTH, HEIGHT, 3 };
 		float aspect = appRenderer.getAspectRatio();
+
+		skyboxCubemap = std::make_shared<CubemapTexture>(engineDevice, std::array<std::string, 6>{
+			"../Models/Skybox/px.png",
+				"../Models/Skybox/nx.png",
+				"../Models/Skybox/py.png",
+				"../Models/Skybox/ny.png",
+				"../Models/Skybox/pz.png",
+				"../Models/Skybox/nz.png"
+		});
+		skyboxSystem = std::make_unique<SkyboxRenderSystem>(
+			engineDevice, appRenderer.getSwapChainRenderPass(),
+			globalSetLayout->getDescriptorSetLayout(), skyboxCubemap);
+
 		GlobalUbo ubo{};
 
 		while (!appWindow.shouldClose()) {
@@ -155,6 +168,7 @@ namespace app {
 
 				// Render
 				appRenderer.beginSwapChainRenderPass(commandBuffer);
+				skyboxSystem->render(frameInfo);       
 				initialRenderSystem.renderGameObjects(frameInfo);
 				pointLightSystem.render(frameInfo);
 				engineImgui->render(commandBuffer);
