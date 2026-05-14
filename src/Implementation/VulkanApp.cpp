@@ -221,13 +221,12 @@ namespace app {
 	{
 		vkDeviceWaitIdle(engineDevice.device());
 		gameObjects.clear();
-		std::shared_ptr<Model> model = Model::createModelFromFile(engineDevice, "models/lenin.obj");
+		std::shared_ptr<Model> model = Model::createModelFromFile(engineDevice, "models/smooth_vase.obj");
 		auto flat_vase = std::make_unique<GameObject>(GameObject::createGameObject());
 		flat_vase->model = model;
 		flat_vase->transform.translation = { 0.0f, .0f, 0.0f };
-		flat_vase->transform.scale = { 0.1f, 0.1f, 0.1f };
-		flat_vase->transform.rotation = { 1.5f , 1.5f, 0.0f };
-		flat_vase->texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png");
+		flat_vase->transform.scale = { 0.1f,0.1f, 0.1f };
+		//flat_vase->texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png");
 
 		gameObjects.emplace(flat_vase->getId(), std::move(flat_vase));
 
@@ -236,7 +235,7 @@ namespace app {
 		floor->model = model;
 		floor->transform.translation = { 0.f, .5f, 0.f };
 		floor->transform.scale = { 3.f, 1.f, 3.f };
-		floor->texture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
+		//floor->texture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
 		gameObjects.emplace(floor->getId(), std::move(floor));
 
 		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
