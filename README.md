@@ -1,8 +1,6 @@
 # RELAMPIÃO
 
 ![Engine Screenshot](screenshot.png)
-![Engine Screenshot](wireframe.png)
-![Engine Screenshot](points.png)
 
 A personal 3D renderer and engine built from scratch in C++ and Vulkan. Started as a way to understand how rendering really works under the hood — ended up becoming an ongoing project with scene management, physically-based lighting, ray tracing, and a solar system simulation.
 
@@ -17,6 +15,7 @@ A personal 3D renderer and engine built from scratch in C++ and Vulkan. Started 
 - **ImGui interface** — runtime controls for scene switching and render settings
 - **Keyboard camera controller** — 6DOF movement in the scene
 - **Automatic shader compilation** — GLSL shaders compiled to SPIR-V at build time via CMake
+<img src="wireframe.png" width="400" /> <img src="points.png" width="500" />
 ---
  
 ## Stack
