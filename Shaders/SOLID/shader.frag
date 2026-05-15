@@ -30,13 +30,13 @@ layout(push_constant) uniform Push {
 
 void main() {
     float distanceFromCenter = length(fragPosWorld);
-    bool isSun = (distanceFromCenter < 500.0);
-    isSun = false;
+    bool isSolarSystem = false;
+    bool isSun = (distanceFromCenter < 1000.0);
 
     vec4 texColor = texture(texSampler, fragUV);
 
 
-    if (isSun) {
+    if (isSun && isSolarSystem) {
         // Sol brilha sozinho, sem iluminação externa
         vec3 sunColor = vec3(1.0, 0.9, 0.5);  // Amarelo quente
         float sunGlow = 1.2;  // Brilho extra

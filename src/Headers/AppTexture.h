@@ -24,7 +24,8 @@ namespace app {
         // Retorna as infos necessarias para escrever no descriptor set
         VkDescriptorImageInfo getDescriptorInfo() const;
 
-    private:
+    protected:
+        Texture(EngineDevice& device) : device{ device } {} // for subclasses
         void createTextureImage(const std::string& filepath);
         void createImageView();
         void createSampler();
