@@ -52,6 +52,12 @@ void main() {
     vec3 cameraPosWorld = ubo.inverseView[3].xyz;
     vec3 V = normalize(cameraPosWorld - fragPosWorld);
 
+    vec3 dirLightDirection = normalize(vec3(0.0, -1.0, 0.0)); 
+    vec3 dirLightColor = vec3(1.0, 1.0, 1.0) * 0.6;
+
+    float dirNdotL = max(dot(N, dirLightDirection), 0.0);
+    diffuse += dirLightColor * dirNdotL;
+
     int numLights = clamp(int(ubo.numLightsAndPad.x), 0, 10);
 
     for (int i = 0; i < numLights; i++) {

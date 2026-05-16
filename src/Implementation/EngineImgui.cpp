@@ -72,10 +72,10 @@ namespace app {
         ImGui::Text("Application Average: %.3f ms/frame (%.1f FPS)",
             1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-
         ImGui::Separator();
 
         if (ImGui::BeginTabBar("EngineMainTabs", ImGuiTabBarFlags_None)) {
+
             // --- TAB 1: RENDER SETTINGS ---
             if (ImGui::BeginTabItem("Renderer")) {
                 ImGui::Text("Rasterization Mode");
@@ -88,10 +88,11 @@ namespace app {
 
                 ImGui::EndTabItem();
             }
+
             // --- TAB 2: SCENE HIERARCHY ---
             if (ImGui::BeginTabItem("Hierarchy")) {
                 ImGui::Text("Game Objects");
-                ImGui::BeginChild("ScrollingRegion", ImVec2(0, 200), true); 
+                ImGui::BeginChild("ScrollingRegion", ImVec2(0, 200), true);
 
                 for (auto& kv : gameObjects) {
                     auto& obj = kv.second;
@@ -124,7 +125,9 @@ namespace app {
                         if (ImGui::TreeNode(label.c_str())) {
                             ImGui::ColorEdit3("Color", &obj->color.r);
                             ImGui::DragFloat("Intensity", &obj->pointLight->lightIntensity, 1.0f, 0.0f, 10000.0f);
-                            ImGui::DragFloat("Radius", &obj->pointLight->radius, 0.1f, 0.0f, 500.0f);
+                            if (ImGui::DragFloat("Radius", &obj->pointLight->radius, 0.1f, 0.0f, 500.0f)) {
+                                obj->transform.scale = glm::vec3(obj->pointLight->radius);
+                            }
                             ImGui::DragFloat3("Position", &obj->transform.translation.x, 0.1f);
                             ImGui::TreePop();
                         }
@@ -133,6 +136,7 @@ namespace app {
                 ImGui::EndTabItem();
             }
 
+            // --- TAB 4: SCENES ---
             if (ImGui::BeginTabItem("Scenes")) {
                 ImGui::Text("Switch Environment:");
 
@@ -153,11 +157,45 @@ namespace app {
                 ImGui::EndTabItem();
             }
 
+            // --- TAB 5: PHYSICS ---
+            if (ImGui::BeginTabItem("Physics")) {
+                ImGui::Text("Real-Time Force Application:");
+                ImGui::Separator();
+
+                for (auto& kv : gameObjects) {
+                    auto& obj = kv.second;
+
+                    // Mostra controles apenas para quem tem Rigidbody ativo
+                    if (obj->rigidbody != nullptr) {
+                        std::string label = "Object ID: " + std::to_string(obj->getId());
+
+                        if (ImGui::TreeNode(label.c_str())) {
+                            std::string buttonLabel = "Apply Impulse##" + std::to_string(obj->getId());
+
+                            if (ImGui::Button(buttonLabel.c_str())) {
+                                glm::vec3 impactoPos = obj->transform.translation + glm::vec3(2.0f, 2.0f, 0.0f);
+
+                                glm::vec3 forcaDiagonal = glm::vec3(1.0f, -50.0f, 3.0f);
+                                obj->rigidbody->addForceAtPosition(forcaDiagonal, impactoPos);
+                            }
+
+                            glm::vec3 vel = obj->rigidbody->getVelocity();
+                            ImGui::Text("Velocity -> X: %.2f | Y: %.2f | Z: %.2f", vel.x, vel.y, vel.z);
+
+                            ImGui::TreePop();
+                        }
+                        ImGui::Separator();
+                    }
+                }
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
 
-        ImGui::End();
+        ImGui::End(); // Fecha "Relampiao Engine" com segurança
     }
+
     void EngineImgui::render(VkCommandBuffer commandBuffer) {
         ImGui::Render();
         ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
