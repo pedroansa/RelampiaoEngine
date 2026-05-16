@@ -1,6 +1,8 @@
 #pragma once
 #include "EngineDevice.h"
 #include <string>
+#include <algorithm> // Para std::max e std::min
+#include <cmath>
 #include <vulkan/vulkan.h>
 
 namespace app {
@@ -30,13 +32,14 @@ namespace app {
         void createImageView();
         void createSampler();
         void transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
-
+        void generateMipmaps();
         EngineDevice& device;
         VkImage image;
         VkDeviceMemory imageMemory;
         VkImageView imageView;
         VkSampler sampler;
         uint32_t width, height;
+        uint32_t mipLevels;
     };
 
 } // namespace app

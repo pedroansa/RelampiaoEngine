@@ -17,8 +17,8 @@ namespace app {
 		auto floor = std::make_unique<GameObject>(GameObject::createGameObject());
 		floor->model = model;
 		floor->transform.translation = { 0.f, .5f, 0.f };
-		floor->transform.scale = { 3.f, 1.f, 3.f };
-		//floor->texture = std::make_shared<Texture>(engineDevice, "../Models/1.png");
+		floor->transform.scale = { 100.f, 100.f, 100.f };
+		floor->texture = std::make_shared<Texture>(engineDevice, "../Models/chess.jpg");
 		gameObjects.emplace(floor->getId(), std::move(floor));
 
 		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
