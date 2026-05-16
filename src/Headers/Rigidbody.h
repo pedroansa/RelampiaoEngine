@@ -1,49 +1,53 @@
 #pragma once
-
-// glm
 #include <glm/glm.hpp>
 
 namespace app {
 
-    // Forward Declaration (Avisa o compilador que essa struct existe sem puxar o GameObject.h inteiro)
     struct TransformComponent;
 
     class RigidbodyComponent {
     public:
-        // O construtor OBRIGA a passar o transform que este componente vai controlar
         RigidbodyComponent(TransformComponent& ownerTransform, float mass = 1.0f, bool useGravity = true);
         ~RigidbodyComponent() = default;
 
-        // Desabilita cópias para proteger a referência do Transform
         RigidbodyComponent(const RigidbodyComponent&) = delete;
         RigidbodyComponent& operator=(const RigidbodyComponent&) = delete;
         RigidbodyComponent(RigidbodyComponent&&) = default;
         RigidbodyComponent& operator=(RigidbodyComponent&&) = default;
 
-        // Executa a física do frame e altera a posição do transform diretamente
         void update(float deltaTime);
 
-        // Adiciona uma força instantânea (pulo, empurrão, explosão)
+        // Agora a força precisa saber ONDE bateu no objeto (em coordenadas do mundo)
+        void addForceAtPosition(const glm::vec3& force, const glm::vec3& worldPoint);
+
+        // Mantemos o addForce antigo para empurrões puramente centrais (sem girar)
         void addForce(const glm::vec3& force);
 
-        // Getters e Setters
         void setVelocity(const glm::vec3& newVelocity) { velocity = newVelocity; }
         glm::vec3 getVelocity() const { return velocity; }
 
-        void setMass(float newMass) { mass = newMass > 0.0f ? newMass : 0.001f; }
+        void setAngularVelocity(const glm::vec3& newAngVel) { angularVelocity = newAngVel; }
+        glm::vec3 getAngularVelocity() const { return angularVelocity; }
+
+        void setMass(float newMass);
         float getMass() const { return mass; }
 
         bool useGravity;
 
     private:
-        TransformComponent& transform; // Referência direta ao transform do GameObject dono
+        TransformComponent& transform;
 
-        glm::vec3 velocity{ 0.0f };      // Velocidade (m/s)
-        glm::vec3 acceleration{ 0.0f };  // Aceleração acumulada no frame
-        float mass;                    // Massa (kg)
+        // Física Linear (Movimento)
+        glm::vec3 velocity{ 0.0f };
+        glm::vec3 acceleration{ 0.0f };
+        float mass;
 
-        // Força da gravidade padrão (Y negativo puxa para baixo)
-        const glm::vec3 gravityConst{ 0.0f, 1.81f, 0.0f };
+        // Física Angular (Rotação)
+        glm::vec3 angularVelocity{ 0.0f }; // Velocidade de rotação em rad/s nos eixos X, Y, Z
+        glm::vec3 torque{ 0.0f };          // Acumulador de forças de rotação do frame
+        float inertiaMoment;               // Resistência rotacional (escalar simplificado)
+
+        const glm::vec3 gravityConst{ 0.0f, 0.1f, 0.0f };
     };
 
 } // namespace app
