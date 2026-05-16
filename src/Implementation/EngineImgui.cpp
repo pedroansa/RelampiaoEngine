@@ -125,7 +125,9 @@ namespace app {
                         if (ImGui::TreeNode(label.c_str())) {
                             ImGui::ColorEdit3("Color", &obj->color.r);
                             ImGui::DragFloat("Intensity", &obj->pointLight->lightIntensity, 1.0f, 0.0f, 10000.0f);
-                            ImGui::DragFloat("Radius", &obj->pointLight->radius, 0.1f, 0.0f, 500.0f);
+                            if (ImGui::DragFloat("Radius", &obj->pointLight->radius, 0.1f, 0.0f, 500.0f)) {
+                                obj->transform.scale = glm::vec3(obj->pointLight->radius);
+                            }
                             ImGui::DragFloat3("Position", &obj->transform.translation.x, 0.1f);
                             ImGui::TreePop();
                         }
@@ -171,8 +173,10 @@ namespace app {
                             std::string buttonLabel = "Apply Impulse##" + std::to_string(obj->getId());
 
                             if (ImGui::Button(buttonLabel.c_str())) {
-                                // Força instantânea para o lado (+X) e para cima (-Y no Vulkan)
-                                obj->rigidbody->addForce(glm::vec3(0.0f, -800.0f, 0.0f));
+                                glm::vec3 impactoPos = obj->transform.translation + glm::vec3(2.0f, 2.0f, 0.0f);
+
+                                glm::vec3 forcaDiagonal = glm::vec3(1.0f, -50.0f, 3.0f);
+                                obj->rigidbody->addForceAtPosition(forcaDiagonal, impactoPos);
                             }
 
                             glm::vec3 vel = obj->rigidbody->getVelocity();
