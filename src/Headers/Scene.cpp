@@ -7,8 +7,9 @@ namespace app {
 		std::shared_ptr<Model> model = Model::createModelFromFile(engineDevice, "models/smooth_vase.obj");
 		auto flat_vase = std::make_unique<GameObject>(GameObject::createGameObject());
 		flat_vase->model = model;
-		flat_vase->transform.translation = { 0.0f, .0f, 0.0f };
-		flat_vase->transform.scale = { 0.1f,0.1f, 0.1f };
+		flat_vase->transform.translation = { 0.0f, -10.0f, 0.0f };
+		flat_vase->transform.scale = { 10.0f,10.0f, 10.0f };
+		flat_vase->rigidbody = std::make_unique<app::RigidbodyComponent>(flat_vase->transform, 1.0f, true);
 		//flat_vase->texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png");
 
 		gameObjects.emplace(flat_vase->getId(), std::move(flat_vase));

@@ -8,6 +8,7 @@
 
 //glm
 #include "glm/gtc/matrix_transform.hpp"
+#include <Rigidbody.h>
 
 namespace app {
 
@@ -56,7 +57,12 @@ namespace app {
         // Optional pointer components
         std::shared_ptr<Model> model{};
         std::unique_ptr<PointLightComponent> pointLight = nullptr;
-        virtual void update(float deltaTime) {}
+        std::unique_ptr<RigidbodyComponent> rigidbody = nullptr;
+        virtual void update(float deltaTime) {
+            if (rigidbody != nullptr) {
+                rigidbody->update(deltaTime);
+            }
+        }
         virtual ~GameObject() = default;
 
     protected:
