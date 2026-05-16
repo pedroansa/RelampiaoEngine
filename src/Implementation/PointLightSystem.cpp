@@ -1,5 +1,6 @@
 #include "PointLightSystem.h"
 #include <iostream>
+#include <map>
 
 
 namespace app {
@@ -53,6 +54,7 @@ namespace app {
 		PipelineConfigInfo pointConfig{};
 
 		AppPipeline::defaultPipelineConfigInfo(solidConfig);
+		AppPipeline::enableAlphaBlending(solidConfig);
 		auto solidVertexInput = AppPipeline::getSolidVertexInputConfig();
 		solidVertexInput.attributeDescriptions.clear();
 		solidVertexInput.bindingDescriptions.clear();
@@ -63,30 +65,18 @@ namespace app {
 			"shaders/POINT_LIGHT/shader.vert.spv",
 			"shaders/POINT_LIGHT/shader.frag.spv",
 			solidConfig, solidVertexInput);
-
-		////Para wireframe
-		//AppPipeline::wireframePipelineConfigInfo(wireframeConfig);
-		//auto wireFrameVertexInput = AppPipeline::getWireframeVertexInputConfig();
-		//wireframeConfig.renderPass = renderPass;
-		//wireframeConfig.pipelineLayout = pipelineLayout;
-		//wireframePipeline = std::make_unique<AppPipeline>(
-		//	engineDevice,
-		//	"shaders/WIREFRAME/vert.spv",
-		//	"shaders/WIREFRAME/frag.spv",
-		//	wireframeConfig, wireFrameVertexInput);
-
-		////// Para pontos
-		//AppPipeline::pointsPipelineConfigInfo(pointConfig);
-		//auto pointsVertexInput = AppPipeline::getPointsVertexInputConfig();
-		//pointConfig.renderPass = renderPass;
-		//pointConfig.pipelineLayout = pipelineLayout;
-		//pointsPipeline = std::make_unique<AppPipeline>(
-		//	engineDevice,
-		//	"shaders/POINTS/vert.spv",
-		//	"shaders/POINTS/frag.spv",
-		//	pointConfig, pointsVertexInput);
 	}
 	void PointLightSystem::render(FrameInfo& frameInfo) {
+		// sort objects
+		std::map<float, GameObject::id_t> sorted;
+		for (auto& kv : frameInfo.gameObjects) {
+			auto& obj = kv.second;
+			if (obj->pointLight == nullptr) continue;
+
+			auto offset = frameInfo.camera.getPosition() - obj->transform.translation;
+			float distSqr = glm::dot(offset, offset);
+			sorted[distSqr] = obj->getId();
+		}
 		solidPipeline->bind(frameInfo.commandBuffer);
 
 		vkCmdBindDescriptorSets(
@@ -114,8 +104,8 @@ namespace app {
 			&validSet,
 			0, nullptr);
 
-		for (auto& kv : frameInfo.gameObjects) {
-			auto& obj = kv.second;
+		for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+			auto& obj = frameInfo.gameObjects.at(it->second);
 			if (obj->pointLight == nullptr) continue;
 
 			PointLightPushConstants push{};

@@ -65,7 +65,6 @@ namespace app {
             dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
             dynamicStateInfo.pDynamicStates = dynamicStateEnables.data();
         }
-
 		PipelineConfigInfo(const PipelineConfigInfo&) = delete;
 		PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
 
@@ -106,7 +105,9 @@ namespace app {
 		void bind(VkCommandBuffer commandBuffer);
 
 	static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
+    static void enableAlphaBlending(PipelineConfigInfo& configInfo);
 
+       
     // Métodos estáticos para configurar diferentes modos
     static void wireframePipelineConfigInfo(PipelineConfigInfo& configInfo);
     static void pointsPipelineConfigInfo(PipelineConfigInfo& configInfo);
