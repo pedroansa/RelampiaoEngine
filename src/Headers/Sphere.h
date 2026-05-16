@@ -11,8 +11,8 @@ namespace app {
             EngineDevice& device,
             float radius = 1.0f,
             bool hasLight = false,
-            uint32_t sectorCount = 36,
-            uint32_t stackCount = 18,
+            uint32_t sectorCount = 62,
+            uint32_t stackCount = 36,
             glm::vec3 position = { 0.0f, 0.0f, 0.0f },
             glm::vec3 color = { 1.0f, 1.0f, 1.0f });
 

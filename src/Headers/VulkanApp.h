@@ -13,6 +13,7 @@
 #include "EngineImgui.h"
 #include "SkyboxRenderSystem.h"
 #include "CubemapTexture.h"
+#include "Scene.h"
 
 #include <chrono>
 #include <memory>
@@ -32,9 +33,6 @@ namespace app {
 		static constexpr int WIDTH = 800;
 		static constexpr int HEIGHT = 600;
 
-		enum class Scene { DEFAULT, SOLAR_SYSTEM };
-		Scene currentScene = Scene::DEFAULT;
-
 		VulkanApp();
 		~VulkanApp();
 
@@ -42,11 +40,9 @@ namespace app {
 		VulkanApp& operator=(const VulkanApp&) = delete;
 
 		void run();
+		void loadScene(const Scene& scene, GameObject& viewer);
 
 	private:
-		void loadGameObjects();
-		void loadSolarSystem();
-
 		void sierpinski(std::vector<Model::Vertex>& vertices,
 			int depth,
 			glm::vec2 left,
@@ -71,7 +67,10 @@ namespace app {
 		std::unique_ptr<SkyboxRenderSystem> skyboxSystem;
 		std::shared_ptr<CubemapTexture> skyboxCubemap;
 
+		Scene activeScene;
+
 		void rebuildObjectDescriptorSets();
+
 	};
 }
 
