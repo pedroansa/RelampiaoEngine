@@ -1,6 +1,6 @@
 # RELAMPIÃO
 
-![Engine Screenshot](screenshot.png)
+![Engine Screenshot](solar_system.png)
 
 A personal 3D renderer and engine built from scratch in C++ and Vulkan. Started as a way to understand how rendering really works under the hood — ended up becoming an ongoing project with scene management, physically-based lighting, ray tracing, and a solar system simulation.
 
