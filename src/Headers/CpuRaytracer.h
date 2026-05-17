@@ -2,8 +2,11 @@
 #include "GameObject.h"
 #include "Camera.h"
 #include "FrameInfo.h"
+#include "BVH.h"
 #include <string>
 #include <vector>
+#include <thread>
+#include <atomic>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -125,7 +128,8 @@ namespace app {
         glm::vec3 toneMap(const glm::vec3& color) const;
 
         // --- Dados da cena ---
-        std::vector<Triangle> triangles;    // todos os triangulos de todos os meshes
+        BVH bvh;
+        std::vector<BVHTri> bvhTris;
         std::vector<SceneLight> lights;     // todas as point lights
         glm::vec4 ambientLight;             // xyz = cor, w = intensidade
 
@@ -136,7 +140,7 @@ namespace app {
 
         // Reflectividade dos materiais (0 = sem reflexo, 1 = espelho perfeito)
         // Valor global por enquanto — pode ser expandido por material no futuro
-        float reflectivity = 0.3f;
+        float reflectivity = 0.0f;
 
         // Bias para evitar self-intersection em shadow rays e reflection rays
         static constexpr float RAY_BIAS = 1e-4f;

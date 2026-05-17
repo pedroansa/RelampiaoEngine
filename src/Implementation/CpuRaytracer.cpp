@@ -3,6 +3,10 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <thread>
+#include <atomic>
+#include <chrono>
+#include <random>
 
 // stb_image_write — header-only, coloque stb_image_write.h na sua pasta de headers
 // Download: https://github.com/nothings/stb/blob/master/stb_image_write.h
@@ -26,7 +30,7 @@ namespace app {
     // loadScene
     // =========================================================================
     void CpuRaytracer::loadScene(const GameObject::Map& gameObjects, const GlobalUbo& ubo) {
-        triangles.clear();
+        bvhTris.clear();
         lights.clear();
 
         ambientLight = ubo.ambientLightColor;
@@ -69,7 +73,7 @@ namespace app {
                     const auto& b = verts[indices[i + 1]];
                     const auto& c = verts[indices[i + 2]];
 
-                    Triangle tri{};
+                    BVHTri tri{};
                     tri.v0 = glm::vec3(modelMatrix * glm::vec4(a.position, 1.f));
                     tri.v1 = glm::vec3(modelMatrix * glm::vec4(b.position, 1.f));
                     tri.v2 = glm::vec3(modelMatrix * glm::vec4(c.position, 1.f));
@@ -79,12 +83,12 @@ namespace app {
                     tri.c0 = a.color;
                     tri.c1 = b.color;
                     tri.c2 = c.color;
-                    triangles.push_back(tri);
+                    bvhTris.push_back(tri);
                 }
             } else {
                 // Triangulos nao indexados
                 for (size_t i = 0; i + 2 < verts.size(); i += 3) {
-                    Triangle tri{};
+                    BVHTri tri{};
                     tri.v0 = glm::vec3(modelMatrix * glm::vec4(verts[i].position, 1.f));
                     tri.v1 = glm::vec3(modelMatrix * glm::vec4(verts[i+1].position, 1.f));
                     tri.v2 = glm::vec3(modelMatrix * glm::vec4(verts[i+2].position, 1.f));
@@ -94,13 +98,13 @@ namespace app {
                     tri.c0 = verts[i].color;   // <--- Use o índice i
                     tri.c1 = verts[i + 1].color; // <--- Use o índice i+1
                     tri.c2 = verts[i + 2].color; // <--- Use o índice i+2
-                    triangles.push_back(tri);
+                    bvhTris.push_back(tri);
                 }
             }
         }
-
+        bvh.build(bvhTris);
         std::cout << "[CpuRaytracer] Cena carregada: "
-                  << triangles.size() << " triangulos, "
+                  << bvhTris.size() << " triangulos, "
                   << lights.size() << " luzes.\n";
     }
 
@@ -112,80 +116,77 @@ namespace app {
 
         std::vector<uint8_t> pixels(imageWidth * imageHeight * 3);
 
-        // Reconstroi os vetores da camera a partir da inverseView
-        // inverseView[3] = posicao da camera em world space
-        // inverseView[0] = right, inverseView[1] = up, inverseView[2] = forward (negativo)
         glm::mat4 invView = camera.getInverseView();
         glm::vec3 camPos = glm::vec3(invView[3]);
         glm::vec3 camRight = glm::vec3(invView[0]);
         glm::vec3 camUp = -glm::vec3(invView[1]);
-        glm::vec3 camFwd = glm::vec3(invView[2]); // remove o sinal negativo
+        glm::vec3 camFwd = glm::vec3(invView[2]);
 
         float halfH = std::tan(fovY * 0.5f);
         float halfW = halfH * aspect;
 
-        int totalPixels = imageWidth * imageHeight;
-        int lastPercent = -1;
+        // Divide as linhas entre as threads
+        unsigned int numThreads = std::thread::hardware_concurrency();
+        if (numThreads == 0) numThreads = 4; // fallback
+        std::cout << "[CpuRaytracer] Usando " << numThreads << " threads\n";
 
-        // Debug: testa um ray no centro da tela
-        Ray centerRay{};
-        centerRay.origin = camPos;
-        centerRay.direction = camFwd;
-        HitInfo centerHit = traceRay(centerRay);
+        std::vector<std::thread> threads;
+        std::atomic<int> linesCompleted{ 0 };
 
-        std::cout << "[Debug] camPos: " << camPos.x << ", " << camPos.y << ", " << camPos.z << "\n";
-        std::cout << "[Debug] camFwd: " << camFwd.x << ", " << camFwd.y << ", " << camFwd.z << "\n";
-        std::cout << "[Debug] camRight: " << camRight.x << ", " << camRight.y << ", " << camRight.z << "\n";
-        std::cout << "[Debug] camUp: " << camUp.x << ", " << camUp.y << ", " << camUp.z << "\n";
-        std::cout << "[Debug] Ray centro hit: " << (centerHit.hit ? "SIM" : "NAO") << "\n";
-        if (centerHit.hit) {
-            std::cout << "[Debug] Hit pos: " << centerHit.position.x << ", "
-                << centerHit.position.y << ", " << centerHit.position.z << "\n";
-            std::cout << "[Debug] Hit color: " << centerHit.color.x << ", "
-                << centerHit.color.y << ", " << centerHit.color.z << "\n";
-        }
+        auto renderLines = [&](int startY, int endY) {
+            std::mt19937 rng(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+            std::uniform_real_distribution<float> dist(-0.5f, 0.5f);
 
-        // Debug: imprime o primeiro triangulo
-        if (!triangles.empty()) {
-            const auto& t = triangles[0];
-            std::cout << "[Debug] Tri[0] v0: " << t.v0.x << ", " << t.v0.y << ", " << t.v0.z << "\n";
-            std::cout << "[Debug] Tri[0] v1: " << t.v1.x << ", " << t.v1.y << ", " << t.v1.z << "\n";
-            std::cout << "[Debug] Tri[0] v2: " << t.v2.x << ", " << t.v2.y << ", " << t.v2.z << "\n";
-        }
+            const int SAMPLES = 16;
+            for (int y = startY; y < endY; y++) {
+                for (int x = 0; x < imageWidth; x++) {
+                    glm::vec3 colorAccum{ 0.f };
+                    for (int s = 0; s < SAMPLES; s++) {
+                        // Jitter offset within the pixel
+                        float jitterX = dist(rng);
+                        float jitterY = dist(rng);
 
-        for (int y = 0; y < imageHeight; y++) {
-            // Progress
-            int percent = (y * 100) / imageHeight;
-            if (percent != lastPercent) {
-                std::cout << "\r[CpuRaytracer] " << percent << "%" << std::flush;
-                lastPercent = percent;
-            }
+                        float u = (2.f * (x + 0.5f + jitterX) / imageWidth - 1.f) * halfW;
+                        float v = (1.f - 2.f * (y + 0.5f + jitterY) / imageHeight) * halfH;
 
-            for (int x = 0; x < imageWidth; x++) {
-                // NDC [-1, 1]
-                float u = (2.f * (x + 0.5f) / imageWidth  - 1.f) * halfW;
-                float v = (1.f - 2.f * (y + 0.5f) / imageHeight) * halfH;
+                        Ray ray{};
+                        ray.origin = camPos;
+                        ray.direction = glm::normalize(camFwd + u * camRight + v * camUp);
 
-                Ray ray{};
-                ray.origin    = camPos;
-                ray.direction = glm::normalize(camFwd + u * camRight + v * camUp);
+                        HitInfo hit = traceRay(ray);
+                        glm::vec3 color{ 0.f };
+                        if (hit.hit) color = shade(hit, ray, 0);
+                        colorAccum += toneMap(color);
+                    }
 
-                HitInfo hit = traceRay(ray);
-                glm::vec3 color{ 0.f };
-                if (hit.hit) {
-                    color = shade(hit, ray, 0);
+                    colorAccum /= static_cast<float>(SAMPLES);
+
+                    int idx = (y * imageWidth + x) * 3;
+                    pixels[idx + 0] = static_cast<uint8_t>(std::clamp(colorAccum.r, 0.f, 1.f) * 255.f);
+                    pixels[idx + 1] = static_cast<uint8_t>(std::clamp(colorAccum.g, 0.f, 1.f) * 255.f);
+                    pixels[idx + 2] = static_cast<uint8_t>(std::clamp(colorAccum.b, 0.f, 1.f) * 255.f);
                 }
-                float exposure = 10.0f; // Aumente este valor (ex: 2.0, 5.0) para clarear tudo
-                color *= exposure;
-                color = toneMap(color);
-
-                int idx = (y * imageWidth + x) * 3;
-                pixels[idx + 0] = static_cast<uint8_t>(std::clamp(color.r, 0.f, 1.f) * 255.f);
-                pixels[idx + 1] = static_cast<uint8_t>(std::clamp(color.g, 0.f, 1.f) * 255.f);
-                pixels[idx + 2] = static_cast<uint8_t>(std::clamp(color.b, 0.f, 1.f) * 255.f);
+                linesCompleted++;
             }
+            };
+
+        // Distribui linhas entre threads
+        int linesPerThread = imageHeight / numThreads;
+        for (unsigned int t = 0; t < numThreads; t++) {
+            int startY = t * linesPerThread;
+            int endY = (t == numThreads - 1) ? imageHeight : startY + linesPerThread;
+            threads.emplace_back(renderLines, startY, endY);
         }
 
+        // Progress enquanto threads rodam
+        while (linesCompleted < imageHeight) {
+            int percent = (linesCompleted * 100) / imageHeight;
+            std::cout << "\r[CpuRaytracer] " << percent << "%" << std::flush;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        // Espera todas terminarem
+        for (auto& t : threads) t.join();
         std::cout << "\r[CpuRaytracer] 100%\n";
 
         int result = stbi_write_png(outPath.c_str(), imageWidth, imageHeight, 3, pixels.data(), imageWidth * 3);
@@ -197,7 +198,6 @@ namespace app {
         std::cout << "[CpuRaytracer] Salvo em: " << outPath << "\n";
         return true;
     }
-
     // =========================================================================
     // intersectTriangle — Moller-Trumbore
     // =========================================================================
@@ -228,25 +228,19 @@ namespace app {
     // traceRay — testa contra todos os triangulos, retorna o mais proximo
     // =========================================================================
     CpuRaytracer::HitInfo CpuRaytracer::traceRay(const Ray& ray) const {
-        HitInfo closest{};
-        closest.hit = false;
-        closest.t = 1e9f;
+        HitInfo result;
+        auto hit = bvh.intersect(ray.origin, ray.direction);
+        if (!hit.hit) return result;
 
-        for (const auto& tri : triangles) {
-            float t, u, v;
-            if (intersectTriangle(ray, tri, t, u, v) && t < closest.t) {
-                closest.hit = true;
-                closest.t = t;
-                closest.position = ray.origin + t * ray.direction;
+        const BVHTri& tri = bvh.getTris()[hit.triIndex];
+        float w = 1.f - hit.u - hit.v;
 
-                // Interpolacao baricentrica da normal
-                float w = 1.f - u - v;
-                closest.normal = glm::normalize(w * tri.n0 + u * tri.n1 + v * tri.n2);
-                closest.color = (w * tri.c0 + u * tri.c1 + v * tri.c2);
-            }
-        }
-
-        return closest;
+        result.hit = true;
+        result.t = hit.t;
+        result.position = ray.origin + hit.t * ray.direction;
+        result.normal = glm::normalize(w * tri.n0 + hit.u * tri.n1 + hit.v * tri.n2);
+        result.color = w * tri.c0 + hit.u * tri.c1 + hit.v * tri.c2;
+        return result;
     }
 
     // =========================================================================
@@ -257,27 +251,41 @@ namespace app {
         glm::vec3 V = glm::normalize(-incomingRay.direction);
 
         // Luz ambiente
-        glm::vec3 result = glm::vec3(ambientLight) * ambientLight.w * hit.color;        
+        glm::vec3 ambient = glm::max(glm::vec3(ambientLight) * ambientLight.w, glm::vec3(0.05f));
+        glm::vec3 result = ambient * hit.color;
         // Contribuicao de cada point light
         for (const auto& light : lights) {
             glm::vec3 toLight = light.position - hit.position;
             float dist = glm::length(toLight);
             glm::vec3 L = toLight / dist;
 
-            // Shadow ray
-            Ray shadowRay{};
-            shadowRay.origin    = hit.position + N * RAY_BIAS;
-            shadowRay.direction = L;
+            // Soft shadows — multiple shadow rays to random points on light area
+            const int SHADOW_SAMPLES = 4;
+            int shadowHits = 0;
 
-            bool shadowed = false;
-            for (const auto& tri : triangles) {
-                float t, u, v;
-                if (intersectTriangle(shadowRay, tri, t, u, v) && t < dist) {
-                    shadowed = true;
-                    break;
-                }
+            std::mt19937 shadowRng(std::hash<float>{}(hit.position.x + hit.position.y + hit.position.z));
+            std::uniform_real_distribution<float> shadowJitter(-1.f, 1.f);
+
+            for (int s = 0; s < SHADOW_SAMPLES; s++) {
+                glm::vec3 lightOffset = glm::vec3(
+                    shadowJitter(shadowRng),
+                    shadowJitter(shadowRng),
+                    shadowJitter(shadowRng)) * light.radius * 0.1f;
+
+                glm::vec3 lightSamplePos = light.position + lightOffset;
+                glm::vec3 toLightSample = lightSamplePos - hit.position;
+                float distSample = glm::length(toLightSample);
+
+                Ray shadowRay{};
+                shadowRay.origin = hit.position + N * RAY_BIAS;
+                shadowRay.direction = glm::normalize(toLightSample);
+
+                auto shadowHit = bvh.intersect(shadowRay.origin, shadowRay.direction);
+                if (shadowHit.hit && shadowHit.t < distSample) shadowHits++;
             }
-            if (shadowed) continue;
+
+            float shadowFactor = 1.f - (static_cast<float>(shadowHits) / SHADOW_SAMPLES);
+            if (shadowFactor == 0.f) continue;
 
             // Atenuacao
             float radius = std::max(light.radius, 0.001f);
@@ -292,7 +300,7 @@ namespace app {
             float NdotH = std::max(glm::dot(N, H), 0.f);
             glm::vec3 specular = light.color * light.intensity * std::pow(NdotH, 32.f) * attenuation;
 
-            result += (diffuse * hit.color) + specular;
+            result += ((diffuse * hit.color) + specular) * shadowFactor;
         }
 
         // Reflexo recursivo
