@@ -28,6 +28,7 @@ layout(std140, set = 0, binding = 0) uniform GlobalUbo {
 layout(push_constant) uniform Push{
 	mat4 modelMatrix; 
 	mat4 normalMatrix;
+    float uvScale;
 } push;
 
 const float AMBIENT_LIGHT = 0.02;
@@ -39,5 +40,5 @@ void main(){
 	fragNormalWorld = normalize(mat3(push.normalMatrix) * normal);
 	fragPosWorld = positionWorld.xyz;
 	fragColor = color;
-    fragUV = uv * 20;
+    fragUV = uv * push.uvScale;
 	}

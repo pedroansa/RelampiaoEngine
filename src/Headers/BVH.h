@@ -58,6 +58,7 @@ namespace app {
         const uint8_t* texPixels = nullptr;
         int texWidth = 0;
         int texHeight = 0;
+        float uvScale = 1.f;
     };
 
     class BVH {

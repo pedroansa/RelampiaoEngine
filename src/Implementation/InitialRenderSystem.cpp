@@ -118,6 +118,7 @@ namespace app {
 			//obj->transform.rotation.y += 0.1f * frameInfo.frameTime;
 			push.modelMatrix = obj->transform.mat4();
 			push.normalMatrix = obj->transform.normalMatrix();
+			push.uvScale = obj->uvScale;
 
 
 			if (frameInfo.objectDescriptorSets.count(obj->getId())) {

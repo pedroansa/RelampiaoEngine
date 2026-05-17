@@ -86,6 +86,7 @@ namespace app {
                     tri.uv0 = a.uv;
                     tri.uv1 = b.uv;
                     tri.uv2 = c.uv;
+                    tri.uvScale = obj->uvScale;
                     if (obj->texture) {
                         tri.texPixels = obj->texture->cpuPixels.data();
                         tri.texWidth = obj->texture->texWidth;
@@ -267,15 +268,7 @@ namespace app {
         glm::vec3 surfaceColor = hit.color;
         if (hit.tri && hit.tri->texPixels && hit.tri->texWidth > 0 && hit.tri->texHeight > 0) {
 
-            // MULTIPLICADOR DE ESCALA DA TEXTURA:
-            // Ajuste esse valor (ex: 10.0f, 50.0f) para definir quantas vezes a textura 
-            // vai se repetir ao longo do chão. Se no Vulkan ela repete mais, aumente este número!
-            float texScale = 50.0f;
-
-            // Se não for o triângulo do chão (ex: o vaso), use escala 1.0f
-            if (std::abs(hit.normal.y) < 0.9f) {
-                texScale = 1.0f;
-            }
+            float texScale = hit.tri->uvScale;
 
             // Realiza o comportamento de repetição (Tiling / Wrap)
             float u_norm = (hit.uv.x * texScale) - std::floor(hit.uv.x * texScale);

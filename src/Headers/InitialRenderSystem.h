@@ -22,6 +22,8 @@ namespace app {
 		struct SimplePushConstantData {
 			glm::mat4 modelMatrix{ 1.f };
 			glm::mat4 normalMatrix{ 1.f };
+			float uvScale = 1.f;
+			float padding[3]{};
 		};
 
 
