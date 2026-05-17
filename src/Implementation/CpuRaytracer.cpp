@@ -83,6 +83,14 @@ namespace app {
                     tri.c0 = a.color;
                     tri.c1 = b.color;
                     tri.c2 = c.color;
+                    tri.uv0 = a.uv;
+                    tri.uv1 = b.uv;
+                    tri.uv2 = c.uv;
+                    if (obj->texture) {
+                        tri.texPixels = obj->texture->cpuPixels.data();
+                        tri.texWidth = obj->texture->texWidth;
+                        tri.texHeight = obj->texture->texHeight;
+                    }
                     bvhTris.push_back(tri);
                 }
             } else {
@@ -137,7 +145,7 @@ namespace app {
             std::mt19937 rng(std::hash<std::thread::id>{}(std::this_thread::get_id()));
             std::uniform_real_distribution<float> dist(-0.5f, 0.5f);
 
-            const int SAMPLES = 16;
+            const int SAMPLES = 4;
             for (int y = startY; y < endY; y++) {
                 for (int x = 0; x < imageWidth; x++) {
                     glm::vec3 colorAccum{ 0.f };
@@ -240,6 +248,8 @@ namespace app {
         result.position = ray.origin + hit.t * ray.direction;
         result.normal = glm::normalize(w * tri.n0 + hit.u * tri.n1 + hit.v * tri.n2);
         result.color = w * tri.c0 + hit.u * tri.c1 + hit.v * tri.c2;
+        result.uv = w * tri.uv0 + hit.u * tri.uv1 + hit.v * tri.uv2;
+        result.tri = &tri;
         return result;
     }
 
@@ -251,8 +261,64 @@ namespace app {
         glm::vec3 V = glm::normalize(-incomingRay.direction);
 
         // Luz ambiente
+        // ==========================================
+        // TEXTURE SAMPLING (CORRIGIDO COM REPETIÇÃO E FILTRO BILINEAR)
+        // ==========================================
+        glm::vec3 surfaceColor = hit.color;
+        if (hit.tri && hit.tri->texPixels && hit.tri->texWidth > 0 && hit.tri->texHeight > 0) {
+
+            // MULTIPLICADOR DE ESCALA DA TEXTURA:
+            // Ajuste esse valor (ex: 10.0f, 50.0f) para definir quantas vezes a textura 
+            // vai se repetir ao longo do chão. Se no Vulkan ela repete mais, aumente este número!
+            float texScale = 50.0f;
+
+            // Se não for o triângulo do chão (ex: o vaso), use escala 1.0f
+            if (std::abs(hit.normal.y) < 0.9f) {
+                texScale = 1.0f;
+            }
+
+            // Realiza o comportamento de repetição (Tiling / Wrap)
+            float u_norm = (hit.uv.x * texScale) - std::floor(hit.uv.x * texScale);
+            float v_norm = (hit.uv.y * texScale) - std::floor(hit.uv.y * texScale);
+
+            // Inversão do eixo Y para sincronizar com o padrão do Vulkan
+            v_norm = 1.f - v_norm;
+
+            // Converte a fração contínua para coordenadas de pixel em float
+            float texX = u_norm * (hit.tri->texWidth - 1);
+            float texY = v_norm * (hit.tri->texHeight - 1);
+
+            // Coordenadas dos pixels vizinhos para Interpolação Bilinear (Remove os blocos gigantes)
+            int x0 = static_cast<int>(std::floor(texX));
+            int y0 = static_cast<int>(std::floor(texY));
+            int x1 = std::min(x0 + 1, hit.tri->texWidth - 1);
+            int y1 = std::min(y0 + 1, hit.tri->texHeight - 1);
+
+            float fX = texX - x0;
+            float fY = texY - y0;
+
+            // Lambda auxiliar para extrair a cor do pixel do array linear RGBA
+            auto getPixelColor = [&](int px, int py) {
+                int idx = (py * hit.tri->texWidth + px) * 4;
+                return glm::vec3(
+                    hit.tri->texPixels[idx + 0] / 255.f,
+                    hit.tri->texPixels[idx + 1] / 255.f,
+                    hit.tri->texPixels[idx + 2] / 255.f
+                );
+                };
+
+            // Coleta as quatro amostras vizinhas
+            glm::vec3 p00 = getPixelColor(x0, y0);
+            glm::vec3 p10 = getPixelColor(x1, y0);
+            glm::vec3 p01 = getPixelColor(x0, y1);
+            glm::vec3 p11 = getPixelColor(x1, y1);
+
+            // Interpolação bilinear final
+            surfaceColor = glm::mix(glm::mix(p00, p10, fX), glm::mix(p01, p11, fX), fY);
+        }
+        // ==========================================
         glm::vec3 ambient = glm::max(glm::vec3(ambientLight) * ambientLight.w, glm::vec3(0.05f));
-        glm::vec3 result = ambient * hit.color;
+        glm::vec3 result = ambient * surfaceColor;
         // Contribuicao de cada point light
         for (const auto& light : lights) {
             glm::vec3 toLight = light.position - hit.position;
@@ -300,7 +366,7 @@ namespace app {
             float NdotH = std::max(glm::dot(N, H), 0.f);
             glm::vec3 specular = light.color * light.intensity * std::pow(NdotH, 32.f) * attenuation;
 
-            result += ((diffuse * hit.color) + specular) * shadowFactor;
+            result += ((diffuse * surfaceColor) + specular) * shadowFactor;
         }
 
         // Reflexo recursivo

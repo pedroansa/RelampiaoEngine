@@ -54,6 +54,10 @@ namespace app {
         glm::vec2 uv0, uv1, uv2;
         AABB bounds;
         glm::vec3 centroid;
+
+        const uint8_t* texPixels = nullptr;
+        int texWidth = 0;
+        int texHeight = 0;
     };
 
     class BVH {

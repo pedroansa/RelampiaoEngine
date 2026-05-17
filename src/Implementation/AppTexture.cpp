@@ -6,7 +6,7 @@
 
 namespace app {
 
-Texture::Texture(EngineDevice& device, const std::string& filepath) : device{device} {
+Texture::Texture(EngineDevice& device, const std::string& filepath, VkSamplerAddressMode addressMode) : device{device}, addressMode{ addressMode } {
     createTextureImage(filepath);
     createImageView();
     createSampler();
@@ -41,6 +41,12 @@ void Texture::createTextureImage(const std::string& filepath) {
     vkMapMemory(device.device(), stagingMemory, 0, imageSize, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(device.device(), stagingMemory);
+    // Copia antes para usarmos no raytracing
+    this->texWidth = static_cast<int>(width);
+    this->texHeight = static_cast<int>(height);
+    cpuPixels.resize(width * height * 4);
+    memcpy(cpuPixels.data(), pixels, width * height * 4);
+
     stbi_image_free(pixels); // pixels em CPU nao sao mais necessarios
 
     // 3. Cria VkImage na GPU
@@ -77,6 +83,7 @@ void Texture::createTextureImage(const std::string& filepath) {
 
     generateMipmaps();
 }
+
 
 void Texture::transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout) {
     VkCommandBuffer cmd = device.beginSingleTimeCommands();
@@ -142,9 +149,9 @@ void Texture::createSampler() {
     samplerInfo.sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter    = VK_FILTER_LINEAR; // suaviza quando ampliado
     samplerInfo.minFilter    = VK_FILTER_LINEAR; // suaviza quando reduzido
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; // repete a textura no eixo U
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT; // repete a textura no eixo V
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeU = addressMode; // Trava no limite em U
+    samplerInfo.addressModeV = addressMode; // Trava no limite em V
+    samplerInfo.addressModeW = addressMode;
     samplerInfo.anisotropyEnable        = VK_TRUE;
     samplerInfo.maxAnisotropy           = device.properties.limits.maxSamplerAnisotropy;
     samplerInfo.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -167,6 +174,28 @@ VkDescriptorImageInfo Texture::getDescriptorInfo() const {
     return info;
 }
 
+glm::vec3 Texture::sampleUV(float u, float v) const {
+    if (cpuPixels.empty() || texWidth <= 0 || texHeight <= 0) return glm::vec3(1.f);
+
+    float u_repeat = u - std::floor(u);
+    float v_repeat = v - std::floor(v);
+    v_repeat = 1.f - v_repeat;
+    // Converte a fração [0, 1) para o índice inteiro de pixels da imagem
+    int x = static_cast<int>(u_repeat * texWidth);
+    int y = static_cast<int>(v_repeat * texHeight);
+
+    // Garante por segurança que arredondamentos de ponto flutuante não estourem os limites do vetor
+    x = std::max(0, std::min(x, texWidth - 1));
+    y = std::max(0, std::min(y, texHeight - 1));
+
+    // Cada pixel tem 4 canais (RGBA)
+    int idx = (y * texWidth + x) * 4;
+    return glm::vec3(
+        cpuPixels[idx + 0] / 255.f,
+        cpuPixels[idx + 1] / 255.f,
+        cpuPixels[idx + 2] / 255.f
+    );
+}
 void Texture::generateMipmaps() {
     // Checa se o hardware suporta filtragem linear para blit
     VkFormatProperties formatProperties;

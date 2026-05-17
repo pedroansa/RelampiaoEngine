@@ -107,6 +107,8 @@ namespace app {
             glm::vec3 position;         // ponto de intersecao em world space
             glm::vec3 normal;           // normal interpolada no ponto de intersecao
             glm::vec3 color;            // cor interpolada no ponto de intersecao
+            glm::vec2 uv{ 0.f };
+            const BVHTri* tri = nullptr;
         };
 
         // --- Metodos internos ---
