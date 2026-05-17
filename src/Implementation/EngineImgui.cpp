@@ -99,11 +99,23 @@ namespace app {
                     // Only list objects that have a model (meshes)
                     if (obj->model != nullptr) {
                         std::string label = "Object " + std::to_string(obj->getId());
-
                         if (ImGui::TreeNode(label.c_str())) {
                             ImGui::DragFloat3("Position", &obj->transform.translation.x, 0.1f);
                             ImGui::DragFloat3("Rotation", &obj->transform.rotation.x, 0.05f);
                             ImGui::DragFloat3("Scale", &obj->transform.scale.x, 0.01f);
+
+                            ImGui::Separator();
+                            ImGui::Text("Material");
+                            ImGui::DragFloat("UV Scale", &obj->uvScale, 0.1f, 0.1f, 100.f);
+                            ImGui::ColorEdit3("Color Tint", &obj->color.r);
+
+                            if (obj->texture) {
+                                ImGui::Text("Texture: %dx%d", obj->texture->texWidth, obj->texture->texHeight);
+                            }
+                            else {
+                                ImGui::TextDisabled("No texture");
+                            }
+
                             ImGui::TreePop();
                         }
                     }
@@ -177,6 +189,16 @@ namespace app {
 
                                 glm::vec3 forcaDiagonal = glm::vec3(1.0f, -50.0f, 3.0f);
                                 obj->rigidbody->addForceAtPosition(forcaDiagonal, impactoPos);
+                            }
+
+                            bool gravityEnabled = obj->rigidbody->useGravity;
+                            std::string gravLabel = "Gravity##" + std::to_string(obj->getId());
+                            if (ImGui::Checkbox(gravLabel.c_str(), &gravityEnabled)) {
+                                obj->rigidbody->setGravity(gravityEnabled);
+                                if (!gravityEnabled) {
+                                    obj->rigidbody->setVelocity(glm::vec3(0.f));
+                                    obj->rigidbody->setAngularVelocity(glm::vec3(0.f));
+                                }
                             }
 
                             glm::vec3 vel = obj->rigidbody->getVelocity();

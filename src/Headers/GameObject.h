@@ -53,6 +53,7 @@ namespace app {
         glm::vec3 color{};
         TransformComponent transform{};
         std::shared_ptr<Texture> texture = nullptr;
+        float uvScale = 1.f;
 
         // Optional pointer components
         std::shared_ptr<Model> model{};

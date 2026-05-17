@@ -4,6 +4,7 @@
 #include <algorithm> // Para std::max e std::min
 #include <cmath>
 #include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 
 namespace app {
 
@@ -11,7 +12,7 @@ namespace app {
     public:
         // Carrega a textura do disco e faz upload para a GPU
         // filepath — caminho relativo ao executavel (ex: "textures/lenin.png")
-        Texture(EngineDevice& device, const std::string& filepath);
+        Texture(EngineDevice& device, const std::string& filepath, VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
         ~Texture();
 
         Texture(const Texture&) = delete;
@@ -25,6 +26,13 @@ namespace app {
 
         // Retorna as infos necessarias para escrever no descriptor set
         VkDescriptorImageInfo getDescriptorInfo() const;
+
+        glm::vec3 sampleUV(float u, float v) const;
+
+        // CPU pixel data — populated during load, kept for raytracing
+        std::vector<uint8_t> cpuPixels;
+        int texWidth = 0;
+        int texHeight = 0;
 
     protected:
         Texture(EngineDevice& device) : device{ device } {} // for subclasses
@@ -40,6 +48,7 @@ namespace app {
         VkSampler sampler;
         uint32_t width, height;
         uint32_t mipLevels;
+        VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     };
 
 } // namespace app

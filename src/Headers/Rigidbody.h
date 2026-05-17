@@ -31,6 +31,7 @@ namespace app {
 
         void setMass(float newMass);
         float getMass() const { return mass; }
+        void setGravity(bool gravity) { useGravity = gravity; }
 
         bool useGravity;
 

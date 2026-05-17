@@ -10,8 +10,8 @@ namespace app {
 		flat_vase->transform.translation = { 0.0f, -10.0f, 0.0f };
 		flat_vase->transform.scale = { 10.0f,10.0f, 10.0f };
 		flat_vase->rigidbody = std::make_unique<app::RigidbodyComponent>(flat_vase->transform, 1.0f, true);
-		//flat_vase->texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png");
-
+		flat_vase->texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png", VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+		
 		gameObjects.emplace(flat_vase->getId(), std::move(flat_vase));
 
 		model = Model::createModelFromFile(engineDevice, "models/quad.obj");
@@ -19,7 +19,8 @@ namespace app {
 		floor->model = model;
 		floor->transform.translation = { 0.f, .5f, 0.f };
 		floor->transform.scale = { 100.f, 100.f, 100.f };
-		floor->texture = std::make_shared<Texture>(engineDevice, "../Models/chess.jpg");
+		floor->texture = std::make_shared<Texture>(engineDevice, "../Models/chess.jpg", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		floor->uvScale = 20.f;
 		gameObjects.emplace(floor->getId(), std::move(floor));
 
 		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
@@ -29,11 +30,11 @@ namespace app {
 		//gameObjects.emplace(sphere1.getId(), std::move(sphere1));
 
 		std::vector<glm::vec3> lightColors{
-		  {1.f, .1f, .1f},
-		  {.1f, .1f, 1.f},
-		  {.1f, 1.f, .1f},
-		  {1.f, 1.f, .1f},
-		  {.1f, 1.f, 1.f},
+		  {1.f, 1.f, 1.f},
+		  {1.f, 1.f, 1.f},
+		  {1.f, 1.f, 1.f},
+		  {1.f, 1.f, 1.f},
+		  {1.f, 1.f, 1.f},
 		  {1.f, 1.f, 1.f}  //
 		};
 
