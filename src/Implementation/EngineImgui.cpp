@@ -106,14 +106,17 @@ namespace app {
 
                             ImGui::Separator();
                             ImGui::Text("Material");
-                            ImGui::DragFloat("UV Scale", &obj->uvScale, 0.1f, 0.1f, 100.f);
-                            ImGui::ColorEdit3("Color Tint", &obj->color.r);
+                            ImGui::DragFloat("UV Scale", &obj->material.uvScale, 0.1f, 0.1f, 100.f);
+                            ImGui::DragFloat("Metallic", &obj->material.metallicf, 0.01f, 0.f, 1.f);
+                            ImGui::DragFloat("Roughness", &obj->material.roughnessf, 0.01f, 0.f, 1.f);
 
-                            if (obj->texture) {
-                                ImGui::Text("Texture: %dx%d", obj->texture->texWidth, obj->texture->texHeight);
+                            if (obj->material.albedo) {
+                                ImGui::Text("Albedo: %dx%d",
+                                    obj->material.albedo->texWidth,
+                                    obj->material.albedo->texHeight);
                             }
                             else {
-                                ImGui::TextDisabled("No texture");
+                                ImGui::TextDisabled("No albedo texture");
                             }
 
                             ImGui::TreePop();

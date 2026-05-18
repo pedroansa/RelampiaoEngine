@@ -86,11 +86,11 @@ namespace app {
                     tri.uv0 = a.uv;
                     tri.uv1 = b.uv;
                     tri.uv2 = c.uv;
-                    tri.uvScale = obj->uvScale;
-                    if (obj->texture) {
-                        tri.texPixels = obj->texture->cpuPixels.data();
-                        tri.texWidth = obj->texture->texWidth;
-                        tri.texHeight = obj->texture->texHeight;
+                    tri.uvScale = obj->material.uvScale;
+                    if (obj->material.albedo) {
+                        tri.texPixels = obj->material.albedo->cpuPixels.data();
+                        tri.texWidth = obj->material.albedo->texWidth;
+                        tri.texHeight = obj->material.albedo->texHeight;
                     }
                     bvhTris.push_back(tri);
                 }
@@ -146,7 +146,7 @@ namespace app {
             std::mt19937 rng(std::hash<std::thread::id>{}(std::this_thread::get_id()));
             std::uniform_real_distribution<float> dist(-0.5f, 0.5f);
 
-            const int SAMPLES = 4;
+            const int SAMPLES = 64;
             for (int y = startY; y < endY; y++) {
                 for (int x = 0; x < imageWidth; x++) {
                     glm::vec3 colorAccum{ 0.f };
@@ -319,7 +319,7 @@ namespace app {
             glm::vec3 L = toLight / dist;
 
             // Soft shadows — multiple shadow rays to random points on light area
-            const int SHADOW_SAMPLES = 4;
+            const int SHADOW_SAMPLES = 16;
             int shadowHits = 0;
 
             std::mt19937 shadowRng(std::hash<float>{}(hit.position.x + hit.position.y + hit.position.z));

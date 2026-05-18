@@ -10,8 +10,16 @@ namespace app {
 		flat_vase->transform.translation = { 0.0f, -10.0f, 0.0f };
 		flat_vase->transform.scale = { 10.0f,10.0f, 10.0f };
 		flat_vase->rigidbody = std::make_unique<app::RigidbodyComponent>(flat_vase->transform, 1.0f, true);
-		flat_vase->texture = std::make_shared<Texture>(engineDevice, "../Models/bricks.png", VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-		
+		flat_vase->material.albedo = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/metal/streaked-metal1-albedo.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		flat_vase->material.ao = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/metal/streaked-metal1-ao.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		flat_vase->material.metallic = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/metal/streaked-metal1-metalness.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		flat_vase->material.normalMap = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/metal/streaked-metal1-normal-dx.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		flat_vase->material.roughness = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/metal/streaked-metal1-rough.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
 		gameObjects.emplace(flat_vase->getId(), std::move(flat_vase));
 
 		model = Model::createModelFromFile(engineDevice, "models/quad.obj");
@@ -19,8 +27,16 @@ namespace app {
 		floor->model = model;
 		floor->transform.translation = { 0.f, .5f, 0.f };
 		floor->transform.scale = { 100.f, 100.f, 100.f };
-		floor->texture = std::make_shared<Texture>(engineDevice, "../Models/chess.jpg", VK_SAMPLER_ADDRESS_MODE_REPEAT);
-		floor->uvScale = 20.f;
+		floor->material.albedo = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/floor/laminate-flooring-brown_albedo.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		floor->material.metallic = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/floor/laminate-flooring-brown_metallic.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		floor->material.normalMap = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/floor/laminate-flooring-brown_normal-dx.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		floor->material.roughness = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/floor/laminate-flooring-brown_roughness.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+		floor->material.ao = std::make_shared<Texture>(engineDevice,
+			"../Models/PBR/floor/laminate-flooring-brown_ao.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
 		gameObjects.emplace(floor->getId(), std::move(floor));
 
 		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
@@ -64,7 +80,7 @@ namespace app {
 		auto sunMesh = std::make_unique<Sphere>(Sphere::createSphere(engineDevice, sunRadius, false));
 		sunMesh->transform.translation = { 0.0f, 0.0f, 0.0f };
 		sunMesh->color = { 1.0f, 0.9f, 0.3f };
-		sunMesh->texture = std::make_shared<Texture>(engineDevice, "../Models/sun.jpg");
+		sunMesh->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/sun.jpg");
 		baseSpeed / 25.0f;
 		gameObjects.emplace(sunMesh->getId(), std::move(sunMesh));
 
@@ -84,7 +100,7 @@ namespace app {
 		mercury->orbitRadius = mercDist;
 		mercury->orbitSpeed = 4.7f;
 		mercury->selfRotationSpeed = baseSpeed / 58.6f;
-		mercury->texture = std::make_shared<Texture>(engineDevice, "../Models/mercury.jpg");
+		mercury->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/mercury.jpg");
 		gameObjects.emplace(mercury->getId(), std::move(mercury));
 
 		// VÊNUS (Rotação lenta)
@@ -94,7 +110,7 @@ namespace app {
 		venus->orbitRadius = venDist;
 		venus->orbitSpeed = 3.5f;
 		venus->selfRotationSpeed = baseSpeed / 243.0f;
-		venus->texture = std::make_shared<Texture>(engineDevice, "../Models/venus.jpg");
+		venus->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/venus.jpg");
 		gameObjects.emplace(venus->getId(), std::move(venus));
 
 		// TERRA
@@ -104,7 +120,7 @@ namespace app {
 		earth->orbitRadius = earthDist;
 		earth->orbitSpeed = 2.4f;
 		earth->selfRotationSpeed = baseSpeed;
-		earth->texture = std::make_shared<Texture>(engineDevice, "../Models/earth.jpg");
+		earth->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/earth.jpg");
 		gameObjects.emplace(earth->getId(), std::move(earth));
 
 		// MARTE
@@ -114,7 +130,7 @@ namespace app {
 		mars->orbitRadius = marsDist;
 		mars->orbitSpeed = 2.0f;
 		mars->selfRotationSpeed = baseSpeed / 1.03f;
-		mars->texture = std::make_shared<Texture>(engineDevice, "../Models/mars.jpg");
+		mars->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/mars.jpg");
 		gameObjects.emplace(mars->getId(), std::move(mars));
 
 		// JÚPITER (Gira muito rápido no próprio eixo)
@@ -124,7 +140,7 @@ namespace app {
 		jupiter->orbitRadius = jupDist;
 		jupiter->orbitSpeed = 1.3f;
 		jupiter->selfRotationSpeed = baseSpeed / 0.41f;
-		jupiter->texture = std::make_shared<Texture>(engineDevice, "../Models/jupiter.jpg");
+		jupiter->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/jupiter.jpg");
 		gameObjects.emplace(jupiter->getId(), std::move(jupiter));
 
 		// SATURNO
@@ -134,7 +150,7 @@ namespace app {
 		saturn->orbitRadius = satDist;
 		saturn->orbitSpeed = 0.9f;
 		saturn->selfRotationSpeed = baseSpeed / 0.45f;
-		saturn->texture = std::make_shared<Texture>(engineDevice, "../Models/saturn.jpg");
+		saturn->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/saturn.jpg");
 		gameObjects.emplace(saturn->getId(), std::move(saturn));
 
 		// URANO
@@ -144,7 +160,7 @@ namespace app {
 		uranus->orbitRadius = uraDist;
 		uranus->orbitSpeed = 0.6f;
 		uranus->selfRotationSpeed = baseSpeed / 0.72f;
-		uranus->texture = std::make_shared<Texture>(engineDevice, "../Models/uranus.jpg");
+		uranus->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/uranus.jpg");
 		gameObjects.emplace(uranus->getId(), std::move(uranus));
 
 		// NETUNO
@@ -154,7 +170,7 @@ namespace app {
 		neptune->orbitRadius = nepDist;
 		neptune->orbitSpeed = 0.5f;
 		neptune->selfRotationSpeed = baseSpeed / 0.67f;
-		neptune->texture = std::make_shared<Texture>(engineDevice, "../Models/neptune.jpg");
+		neptune->material.albedo = std::make_shared<Texture>(engineDevice, "../Models/neptune.jpg");
 		gameObjects.emplace(neptune->getId(), std::move(neptune));
 	}
 }

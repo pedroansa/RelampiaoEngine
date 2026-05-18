@@ -46,7 +46,11 @@ namespace app {
 
 		globalSetLayout = AppDescriptorSetLayout::Builder(engineDevice)
 			.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS)
-			.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+			.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) // albedo
+			.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) // normal
+			.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) // metallic/roughness
+			.addBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) // ao
+			.addBinding(5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT) // ao
 			.build();
 
 		defaultTexture = std::make_shared<Texture>(engineDevice, "../Models/white.png");
@@ -247,18 +251,25 @@ namespace app {
 			auto& obj = kv.second;
 			if (obj->model == nullptr) continue;
 
-			auto& tex = obj->texture ? obj->texture : defaultTexture;
 			auto id = obj->getId();
 
 			objectDescriptorSets[id].resize(EngineSwapChain::MAX_FRAMES_IN_FLIGHT);
 
 			for (int i = 0; i < EngineSwapChain::MAX_FRAMES_IN_FLIGHT; i++) {
 				auto bufferInfo = uboBuffers[i]->descriptorInfo();
-				auto imageInfo = tex->getDescriptorInfo();
+				auto albedoInfo = (obj->material.albedo ? obj->material.albedo : defaultTexture)->getDescriptorInfo();
+				auto normalInfo = (obj->material.normalMap ? obj->material.normalMap : defaultTexture)->getDescriptorInfo();
+				auto mInfo = (obj->material.metallic ? obj->material.metallic : defaultTexture)->getDescriptorInfo();
+				auto rInfo = (obj->material.roughness ? obj->material.roughness : defaultTexture)->getDescriptorInfo();
+				auto aoInfo = (obj->material.ao ? obj->material.ao : defaultTexture)->getDescriptorInfo();
 
 				AppDescriptorWriter(*globalSetLayout, *globalPool)
 					.writeBuffer(0, &bufferInfo)
-					.writeImage(1, &imageInfo)
+					.writeImage(1, &albedoInfo)
+					.writeImage(2, &normalInfo)
+					.writeImage(3, &mInfo)
+					.writeImage(4, &rInfo)
+					.writeImage(5, &aoInfo)
 					.build(objectDescriptorSets[id][i]);
 			}
 		}

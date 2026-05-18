@@ -6,7 +6,14 @@ layout(location = 2) in vec3 fragNormalWorld;
 layout(location = 3) in vec2 fragUV;
 
 layout(location = 0) out vec4 outColor;
-layout(set = 1, binding = 1) uniform sampler2D texSampler;
+
+// Textures — binding 1 = albedo (always present)
+// bindings 2-5 = PBR maps (optional, white fallback if not set)
+layout(set = 1, binding = 1) uniform sampler2D albedoMap;
+layout(set = 1, binding = 2) uniform sampler2D normalMap;
+layout(set = 1, binding = 3) uniform sampler2D metallicMap;
+layout(set = 1, binding = 4) uniform sampler2D roughnessMap;
+layout(set = 1, binding = 5) uniform sampler2D aoMap;
 
 struct PointLight {
     vec4 position;
@@ -26,54 +33,97 @@ layout(std140, set = 0, binding = 0) uniform GlobalUbo {
 layout(push_constant) uniform Push {
     mat4 modelMatrix;
     mat4 normalMatrix;
+    float uvScale;
+    float padding[3];
 } push;
 
+const float PI = 3.14159265359;
+
+float distributionGGX(float NdotH, float roughness) {
+    float a  = roughness * roughness;
+    float a2 = a * a;
+    float d  = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    return a2 / (PI * d * d);
+}
+
+float geometrySchlickGGX(float NdotV, float roughness) {
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float geometrySmith(float NdotV, float NdotL, float roughness) {
+    return geometrySchlickGGX(NdotV, roughness) * geometrySchlickGGX(NdotL, roughness);
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 void main() {
+    vec2 uv = vec2(1.0 - fragUV.x, fragUV.y) * push.uvScale;
+
+    // Sample textures
+    vec4 albedoSample   = texture(albedoMap,    uv);
+    float metallic      = texture(metallicMap,  uv).r;
+    float roughness     = clamp(texture(roughnessMap, uv).r, 0.05, 1.0);
+    float ao            = texture(aoMap, uv).r;
+
+    // sRGB to linear
+    vec3 albedo = pow(albedoSample.rgb, vec3(2.2)) * fragColor;
+
+    // Solar system sun shortcut — kept from original
     float distanceFromCenter = length(fragPosWorld);
     bool isSolarSystem = false;
     bool isSun = (distanceFromCenter < 1000.0);
-
-    vec4 texColor = texture(texSampler, fragUV);
-
-
     if (isSun && isSolarSystem) {
-        // Sol brilha sozinho, sem iluminação externa
-        vec3 sunColor = vec3(1.0, 0.9, 0.5);  // Amarelo quente
-        float sunGlow = 1.2;  // Brilho extra
-        outColor = vec4(sunColor * sunGlow * texColor.rgb, 1.0);
-        return;  // Sai da função, não calcula iluminação
+        vec3 sunColor = vec3(1.0, 0.9, 0.5);
+        outColor = vec4(sunColor * 1.2 * albedo, 1.0);
+        return;
     }
-    vec3 ambient = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w;
-    vec3 diffuse = vec3(0.0);
-    vec3 specular = vec3(0.0);
 
     vec3 N = normalize(fragNormalWorld);
+    vec3 V = normalize(ubo.inverseView[3].xyz - fragPosWorld);
 
-    vec3 cameraPosWorld = ubo.inverseView[3].xyz;
-    vec3 V = normalize(cameraPosWorld - fragPosWorld);
+    // F0 — base reflectivity (0.04 for dielectrics, albedo for metals)
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
+    vec3 Lo = vec3(0.0);
     int numLights = clamp(int(ubo.numLightsAndPad.x), 0, 10);
 
     for (int i = 0; i < numLights; i++) {
-        vec3 toLight = ubo.pointLights[i].position.xyz - fragPosWorld;
-        float dist = length(toLight);
-        vec3 L = normalize(toLight);
-
-        float radius = max(ubo.pointLights[i].data.x, 0.001);
+        vec3  toLight     = ubo.pointLights[i].position.xyz - fragPosWorld;
+        float dist        = length(toLight);
+        vec3  L           = normalize(toLight);
+        vec3  H           = normalize(V + L);
+        float radius      = max(ubo.pointLights[i].data.x, 0.001);
         float attenuation = 1.0 / (1.0 + (dist * dist) / (radius * radius));
-
-        vec3 lightColor = ubo.pointLights[i].color.xyz * ubo.pointLights[i].color.w;
+        vec3  radiance    = ubo.pointLights[i].color.xyz * ubo.pointLights[i].color.w * attenuation;
 
         float NdotL = max(dot(N, L), 0.0);
-        diffuse += lightColor * NdotL * attenuation;
-
-        vec3 H = normalize(L + V);
-        float shininess = 32.0;
+        float NdotV = max(dot(N, V), 0.0);
         float NdotH = max(dot(N, H), 0.0);
-        float specTerm = pow(NdotH, shininess);
-    
-        specular += lightColor * specTerm * attenuation;
+        float HdotV = max(dot(H, V), 0.0);
+
+        // Cook-Torrance BRDF
+        float D = distributionGGX(NdotH, roughness);
+        float G = geometrySmith(NdotV, NdotL, roughness);
+        vec3  F = fresnelSchlick(HdotV, F0);
+
+        vec3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 0.001);
+        vec3 kD       = (vec3(1.0) - F) * (1.0 - metallic);
+        vec3 diffuse  = kD * albedo / PI;
+
+        Lo += (diffuse + specular) * radiance * NdotL;
     }
 
-  outColor = vec4((ambient + diffuse) * fragColor * texColor.rgb, 1.0);
+    // Ambient + AO
+    vec3 ambient = ubo.ambientLightColor.xyz * ubo.ambientLightColor.w * albedo * ao;
+    vec3 color   = ambient + Lo;
+
+    // Tone mapping + gamma correction
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0 / 2.2));
+
+    outColor = vec4(color, 1.0);
 }

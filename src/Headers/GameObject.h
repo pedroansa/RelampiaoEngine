@@ -9,6 +9,7 @@
 //glm
 #include "glm/gtc/matrix_transform.hpp"
 #include <Rigidbody.h>
+#include <MaterialComponent.h>
 
 namespace app {
 
@@ -52,8 +53,7 @@ namespace app {
 
         glm::vec3 color{};
         TransformComponent transform{};
-        std::shared_ptr<Texture> texture = nullptr;
-        float uvScale = 1.f;
+        MaterialComponent material;
 
         // Optional pointer components
         std::shared_ptr<Model> model{};
