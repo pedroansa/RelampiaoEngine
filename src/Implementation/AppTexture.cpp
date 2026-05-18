@@ -6,7 +6,7 @@
 
 namespace app {
 
-Texture::Texture(EngineDevice& device, const std::string& filepath, VkSamplerAddressMode addressMode) : device{device}, addressMode{ addressMode } {
+    Texture::Texture(EngineDevice& device, const std::string& filepath, VkFormat format, VkSamplerAddressMode addressMode) : device{ device }, format{ format }, addressMode { addressMode } {
     createTextureImage(filepath);
     createImageView();
     createSampler();
@@ -59,7 +59,7 @@ void Texture::createTextureImage(const std::string& filepath) {
     imageInfo.extent.depth  = 1;
     imageInfo.mipLevels     = mipLevels;
     imageInfo.arrayLayers   = 1;
-    imageInfo.format        = VK_FORMAT_R8G8B8A8_SRGB;
+    imageInfo.format        = this->format;
     imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL; // melhor performance na GPU
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -133,7 +133,7 @@ void Texture::createImageView() {
     viewInfo.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image    = image;
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format   = VK_FORMAT_R8G8B8A8_SRGB;
+    viewInfo.format   = this->format;
     viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel   = 0;
     viewInfo.subresourceRange.levelCount     = mipLevels;
@@ -199,7 +199,7 @@ glm::vec3 Texture::sampleUV(float u, float v) const {
 void Texture::generateMipmaps() {
     // Checa se o hardware suporta filtragem linear para blit
     VkFormatProperties formatProperties;
-    vkGetPhysicalDeviceFormatProperties(device.getPhysicalDevice(), VK_FORMAT_R8G8B8A8_SRGB, &formatProperties);
+    vkGetPhysicalDeviceFormatProperties(device.getPhysicalDevice(), this->format, &formatProperties);
     if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
         throw std::runtime_error("O formato da textura nao suporta filtragem linear para blitting!");
     }

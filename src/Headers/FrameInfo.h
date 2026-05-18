@@ -25,7 +25,9 @@ namespace app{
 
 		glm::vec4 numLightsAndPad{0.f};
 		PointLight pointLights[MAX_LIGHTS]; // 480 bytes - offset 224
-	}; // Total: 704 bytes
+		glm::vec4 directionalLightDir{ glm::normalize(glm::vec3(-1.f, -3.f, -1.f)), 1.f }; // xyz = dir, w = intensity
+		glm::vec4 directionalLightColor{ 1.f, 1.f, 1.f, 1.f };
+	}; 
 
 
 	struct FrameInfo {

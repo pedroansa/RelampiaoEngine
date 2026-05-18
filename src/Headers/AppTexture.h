@@ -12,7 +12,7 @@ namespace app {
     public:
         // Carrega a textura do disco e faz upload para a GPU
         // filepath — caminho relativo ao executavel (ex: "textures/lenin.png")
-        Texture(EngineDevice& device, const std::string& filepath, VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
+        Texture(EngineDevice& device, const std::string& filepath, VkFormat format = VK_FORMAT_R8G8B8A8_SRGB, VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT);
         ~Texture();
 
         Texture(const Texture&) = delete;
@@ -48,7 +48,8 @@ namespace app {
         VkSampler sampler;
         uint32_t width, height;
         uint32_t mipLevels;
-        VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        VkSamplerAddressMode addressMode;
+        VkFormat format;
     };
 
 } // namespace app

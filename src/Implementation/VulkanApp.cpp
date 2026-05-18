@@ -113,6 +113,8 @@ namespace app {
 			globalSetLayout->getDescriptorSetLayout(), skyboxCubemap);
 
 		GlobalUbo ubo{};
+		ubo.directionalLightDir = glm::vec4(glm::normalize(glm::vec3(-0.f, 1.f, -0.f)), 1.f);
+		ubo.directionalLightColor = glm::vec4(1.f, 1.f, 1.f, 1.f);
 
 		while (!appWindow.shouldClose()) {
 			glfwPollEvents();
@@ -156,7 +158,7 @@ namespace app {
 				int frameIndex = appRenderer.getCurrentFrameIndex();
 
 				engineImgui->newFrame();
-				engineImgui->runDefaultUi(initialRenderSystem, gameObjects);
+				engineImgui->runDefaultUi(initialRenderSystem, gameObjects, ubo);
 
 				std::unordered_map<GameObject::id_t, VkDescriptorSet> frameDescriptorSets;
 				for (auto& kv : objectDescriptorSets) {
@@ -168,7 +170,6 @@ namespace app {
 				FrameInfo frameInfo{ frameIndex, frameTime, commandBuffer, camera,  globalDescriptorSets[frameIndex], frameDescriptorSets, gameObjects };
 
 				// Update memory
-				GlobalUbo ubo{};
 				ubo.projection = camera.getProjection();
 				ubo.view = camera.getView();
 				ubo.inverseView = camera.getInverseView();

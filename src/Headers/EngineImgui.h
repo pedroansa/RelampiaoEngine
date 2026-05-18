@@ -25,7 +25,7 @@ namespace app {
         void resetSceneRequest() { sceneRequest = SceneRequest::None; }
 
         void newFrame();
-        void runDefaultUi(InitialRenderSystem& renderSystem, GameObject::Map& gameObjects);
+        void runDefaultUi(InitialRenderSystem& renderSystem, GameObject::Map& gameObjects, GlobalUbo& ubo);
         void render(VkCommandBuffer commandBuffer);
 
     private:

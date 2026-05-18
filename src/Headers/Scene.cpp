@@ -8,18 +8,18 @@ namespace app {
 		auto flat_vase = std::make_unique<GameObject>(GameObject::createGameObject());
 		flat_vase->model = model;
 		flat_vase->transform.translation = { 0.0f, -10.0f, 0.0f };
-		flat_vase->transform.scale = { 10.0f,10.0f, 10.0f };
+		flat_vase->transform.scale = { 100.0f,100.0f, 100.0f };
 		flat_vase->rigidbody = std::make_unique<app::RigidbodyComponent>(flat_vase->transform, 1.0f, true);
 		flat_vase->material.albedo = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/metal/streaked-metal1-albedo.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/painted-worn-concrete/painted-worn-concrete_albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
 		flat_vase->material.ao = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/metal/streaked-metal1-ao.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/painted-worn-concrete/painted-worn-concrete_ao.png", VK_FORMAT_R8G8B8A8_UNORM);
 		flat_vase->material.metallic = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/metal/streaked-metal1-metalness.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/painted-worn-concrete/painted-worn-concrete_metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
 		flat_vase->material.normalMap = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/metal/streaked-metal1-normal-dx.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/painted-worn-concrete/painted-worn-concrete_normal-ogl.png", VK_FORMAT_R8G8B8A8_UNORM);
 		flat_vase->material.roughness = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/metal/streaked-metal1-rough.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/painted-worn-concrete/painted-worn-concrete_roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
 		gameObjects.emplace(flat_vase->getId(), std::move(flat_vase));
 
 		model = Model::createModelFromFile(engineDevice, "models/quad.obj");
@@ -28,15 +28,15 @@ namespace app {
 		floor->transform.translation = { 0.f, .5f, 0.f };
 		floor->transform.scale = { 100.f, 100.f, 100.f };
 		floor->material.albedo = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/floor/laminate-flooring-brown_albedo.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/floor/laminate-flooring-brown_albedo.png", VK_FORMAT_R8G8B8A8_SRGB);
 		floor->material.metallic = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/floor/laminate-flooring-brown_metallic.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/floor/laminate-flooring-brown_metallic.png", VK_FORMAT_R8G8B8A8_UNORM);
 		floor->material.normalMap = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/floor/laminate-flooring-brown_normal-dx.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/floor/laminate-flooring-brown_normal-dx.png", VK_FORMAT_R8G8B8A8_UNORM);
 		floor->material.roughness = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/floor/laminate-flooring-brown_roughness.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/floor/laminate-flooring-brown_roughness.png", VK_FORMAT_R8G8B8A8_UNORM);
 		floor->material.ao = std::make_shared<Texture>(engineDevice,
-			"../Models/PBR/floor/laminate-flooring-brown_ao.png", VK_SAMPLER_ADDRESS_MODE_REPEAT);
+			"../Models/PBR/floor/laminate-flooring-brown_ao.png", VK_FORMAT_R8G8B8A8_UNORM);
 		gameObjects.emplace(floor->getId(), std::move(floor));
 
 		//auto sphere = Sphere::createSphere(engineDevice, 0.5f, true);
@@ -46,12 +46,7 @@ namespace app {
 		//gameObjects.emplace(sphere1.getId(), std::move(sphere1));
 
 		std::vector<glm::vec3> lightColors{
-		  {1.f, 1.f, 1.f},
-		  {1.f, 1.f, 1.f},
-		  {1.f, 1.f, 1.f},
-		  {1.f, 1.f, 1.f},
-		  {1.f, 1.f, 1.f},
-		  {1.f, 1.f, 1.f}  //
+		  {1.f, 1.f, 1.f}
 		};
 
 		for (int i = 0; i < lightColors.size(); i++) {

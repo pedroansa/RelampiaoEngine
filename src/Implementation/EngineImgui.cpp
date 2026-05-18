@@ -65,7 +65,7 @@ namespace app {
         ImGui::NewFrame();
     }
 
-    void EngineImgui::runDefaultUi(InitialRenderSystem& renderSystem, GameObject::Map& gameObjects) {
+    void EngineImgui::runDefaultUi(InitialRenderSystem& renderSystem, GameObject::Map& gameObjects, GlobalUbo& ubo) {
         ImGui::Begin("Relampiao Engine");
 
         // Performance Overlay
@@ -129,6 +129,12 @@ namespace app {
 
             // --- TAB 3: LIGHTING ---
             if (ImGui::BeginTabItem("Lights")) {
+                ImGui::Text("Directional Light");
+                ImGui::DragFloat3("Direction", &ubo.directionalLightDir.x, 0.01f, -1.f, 1.f);
+                ImGui::DragFloat("Intensity##dir", &ubo.directionalLightDir.w, 0.1f, 0.f, 10.f);
+                ImGui::ColorEdit3("Color##dir", &ubo.directionalLightColor.x);
+
+                ImGui::Separator();
                 ImGui::Text("Point Lights");
 
                 for (auto& kv : gameObjects) {

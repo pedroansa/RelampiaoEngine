@@ -28,6 +28,8 @@ layout(std140, set = 0, binding = 0) uniform GlobalUbo {
     vec4 ambientLightColor;
     vec4 numLightsAndPad;
     PointLight pointLights[10];
+    vec4 directionalLightDir;   // xyz = direction, w = intensity
+    vec4 directionalLightColor; // xyz = color
 } ubo;
 
 layout(push_constant) uniform Push {
@@ -70,7 +72,7 @@ void main() {
     float ao            = texture(aoMap, uv).r;
 
     // sRGB to linear
-    vec3 albedo = pow(albedoSample.rgb, vec3(2.2)) * fragColor;
+    vec3 albedo = albedoSample.rgb * fragColor;
 
     // Solar system sun shortcut — kept from original
     float distanceFromCenter = length(fragPosWorld);
@@ -82,7 +84,17 @@ void main() {
         return;
     }
 
-    vec3 N = normalize(fragNormalWorld);
+    // --- CORREÇÃO DO MAPA DE NORMAIS DIRECTX/OPENGL MISTO ---
+    vec3 geomNormal = normalize(fragNormalWorld);
+    
+    // Obtém o relevo da textura transformando de [0, 1] para [-1, 1]
+    vec3 normalSample = texture(normalMap, uv).xyz * 2.0 - 1.0;
+    
+    // Como você baixou o pacote do Blender (-bl), o mapa de normais já é nativo OpenGL.
+    // Combinamos a inclinação da textura de relevo diretamente com a direção da face.
+    vec3 N = normalize(geomNormal + vec3(normalSample.xy * 0.35, 0.0));
+    // ---------------------------------------------------------
+
     vec3 V = normalize(ubo.inverseView[3].xyz - fragPosWorld);
 
     // F0 — base reflectivity (0.04 for dielectrics, albedo for metals)
@@ -90,6 +102,26 @@ void main() {
 
     vec3 Lo = vec3(0.0);
     int numLights = clamp(int(ubo.numLightsAndPad.x), 0, 10);
+
+    vec3 dirL         = normalize(-ubo.directionalLightDir.xyz);
+    float dirIntensity = ubo.directionalLightDir.w;
+    vec3  dirColor    = ubo.directionalLightColor.xyz;
+
+    float dirNdotL = max(dot(N, dirL), 0.0);
+    vec3  H_dir    = normalize(V + dirL);
+    float dirNdotH = max(dot(N, H_dir), 0.0);
+    float HdotV_dir = max(dot(H_dir, V), 0.0);
+
+    // Cook-Torrance for directional light
+    float D_dir = distributionGGX(dirNdotH, roughness);
+    float G_dir = geometrySmith(max(dot(N,V),0.0), dirNdotL, roughness);
+    vec3  F_dir = fresnelSchlick(HdotV_dir, F0);
+
+    vec3 spec_dir    = (D_dir * G_dir * F_dir) / max(4.0 * max(dot(N,V),0.0) * dirNdotL, 0.001);
+    vec3 kD_dir      = (vec3(1.0) - F_dir) * (1.0 - metallic);
+    vec3 diffuse_dir = kD_dir * albedo / PI;
+
+    Lo += (diffuse_dir + spec_dir) * dirColor * dirIntensity * dirNdotL;
 
     for (int i = 0; i < numLights; i++) {
         vec3  toLight     = ubo.pointLights[i].position.xyz - fragPosWorld;
