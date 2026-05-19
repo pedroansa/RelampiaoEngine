@@ -230,6 +230,7 @@ std::vector<VkVertexInputAttributeDescription> app::Model::Vertex::getAttributeD
     attributeDescriptions.push_back({ 1,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex, color) });
     attributeDescriptions.push_back({ 2,0,VK_FORMAT_R32G32B32_SFLOAT,offsetof(Vertex, normal) });
     attributeDescriptions.push_back({ 3,0,VK_FORMAT_R32G32_SFLOAT,offsetof(Vertex, uv) });
+    attributeDescriptions.push_back({ 4, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent) });
 
     return attributeDescriptions;
 }
@@ -300,5 +301,40 @@ void app::Model::ModelBuilder::loadModel(const std::string& filepath)
             }
             indices.push_back(uniqueVertices[vertex]);
         }
+    }
+    // Calcula tangentes por triangulo e acumula nos vertices
+    for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+        Vertex& v0 = vertices[indices[i]];
+        Vertex& v1 = vertices[indices[i + 1]];
+        Vertex& v2 = vertices[indices[i + 2]];
+
+        // Arestas do triangulo em posicao e UV
+        glm::vec3 edge1 = v1.position - v0.position;
+        glm::vec3 edge2 = v2.position - v0.position;
+        glm::vec2 dUV1 = v1.uv - v0.uv;
+        glm::vec2 dUV2 = v2.uv - v0.uv;
+
+        // Determinante — se for zero o triangulo tem UVs degenerados, pula
+        float denom = dUV1.x * dUV2.y - dUV2.x * dUV1.y;
+        if (std::abs(denom) < 1e-6f) continue;
+
+        float f = 1.0f / denom;
+
+        // Tangente = direcao no espaco 3D que corresponde ao eixo U da textura
+        glm::vec3 tangent{
+            f * (dUV2.y * edge1.x - dUV1.y * edge2.x),
+            f * (dUV2.y * edge1.y - dUV1.y * edge2.y),
+            f * (dUV2.y * edge1.z - dUV1.y * edge2.z)
+        };
+
+        // Acumula nos 3 vertices do triangulo (media ponderada implicita)
+        v0.tangent += tangent;
+        v1.tangent += tangent;
+        v2.tangent += tangent;
+    }
+    // Normaliza as tangentes acumuladas
+    for (auto& v : vertices) {
+        if (glm::length(v.tangent) > 1e-6f)
+            v.tangent = glm::normalize(v.tangent);
     }
 }

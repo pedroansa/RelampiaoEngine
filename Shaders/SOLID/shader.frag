@@ -4,6 +4,7 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragPosWorld;
 layout(location = 2) in vec3 fragNormalWorld;
 layout(location = 3) in vec2 fragUV;
+layout(location = 4) in vec3 fragTangent;
 
 layout(location = 0) out vec4 outColor;
 
@@ -84,15 +85,18 @@ void main() {
         return;
     }
 
-    // --- CORREÇÃO DO MAPA DE NORMAIS DIRECTX/OPENGL MISTO ---
-    vec3 geomNormal = normalize(fragNormalWorld);
-    
-    // Obtém o relevo da textura transformando de [0, 1] para [-1, 1]
-    vec3 normalSample = texture(normalMap, uv).xyz * 2.0 - 1.0;
-    
-    // Como você baixou o pacote do Blender (-bl), o mapa de normais já é nativo OpenGL.
-    // Combinamos a inclinação da textura de relevo diretamente com a direção da face.
-    vec3 N = normalize(geomNormal + vec3(normalSample.xy * 0.35, 0.0));
+    vec3 N_geom = normalize(fragNormalWorld);
+    vec3 T = normalize(fragTangent);
+    T           = normalize(T - dot(T, N_geom) * N_geom); // Gram-Schmidt — reortogonaliza
+    vec3 B      = cross(N_geom, T);                        // Bitangente
+    mat3 TBN    = mat3(T, B, N_geom);
+
+    // Converte normal map de [0,1] para [-1,1]
+    vec3 normalSample = texture(normalMap, uv).rgb * 2.0 - 1.0;
+    normalSample.g    = -normalSample.g; // DX to GL — inverte Y
+
+    // Transforma do tangent space para world space
+    vec3 N = normalize(TBN * normalSample);
     // ---------------------------------------------------------
 
     vec3 V = normalize(ubo.inverseView[3].xyz - fragPosWorld);
